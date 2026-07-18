@@ -1,0 +1,18 @@
+# Python virtual environment
+venv/
+
+# Database files
+instance/
+*.db
+
+# Environment variables
+.env
+
+# Flask session and temporary files
+flask_session/
+__pycache__/
+*.pyc
+
+# Local IDE/editor configurations
+.vscode/
+.idea/

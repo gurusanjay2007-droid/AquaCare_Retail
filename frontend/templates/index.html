@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PureFlow Service Hub – RO Sales & Service Management</title>
+    <meta name="description" content="PureFlow Service Hub – Complete RO Water Purifier Sales, Installation & Service Management System for modern service businesses.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- LOGIN SCREEN -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="login-screen" class="login-screen">
+    <div class="login-bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+    <div class="login-card glass">
+        <div class="login-logo">
+            <div class="logo-icon">💧</div>
+            <h1 class="login-title">PureFlow</h1>
+            <p class="login-subtitle">Service Hub</p>
+        </div>
+        <p class="login-tagline">RO Sales & Service Management System</p>
+        <form id="login-form" class="login-form">
+            <div class="form-group">
+                <label for="login-email">Email Address</label>
+                <input type="email" id="login-email" placeholder="admin@pureflow.in" required>
+            </div>
+            <div class="form-group">
+                <label for="login-password">Password</label>
+                <input type="password" id="login-password" placeholder="••••••••" required>
+            </div>
+            <button type="submit" id="login-btn" class="btn btn-primary btn-full">
+                <span>Sign In</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+        </form>
+        <p class="login-hint">Demo: admin@pureflow.in / admin123</p>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- MAIN APP (hidden until login) -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="app" class="app hidden">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <span class="logo-drop">💧</span>
+                <div>
+                    <div class="sidebar-brand">PureFlow</div>
+                    <div class="sidebar-brand-sub">Service Hub</div>
+                </div>
+            </div>
+            <button class="sidebar-toggle-close" id="sidebar-close">✕</button>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section-label">OVERVIEW</div>
+            <a href="#" class="nav-item active" data-page="dashboard" id="nav-dashboard">
+                <span class="nav-icon">⬛</span><span class="nav-label">Dashboard</span>
+            </a>
+
+            <div class="nav-section-label">MANAGEMENT</div>
+            <a href="#" class="nav-item" data-page="customers" id="nav-customers">
+                <span class="nav-icon">👤</span><span class="nav-label">Customers</span>
+            </a>
+            <a href="#" class="nav-item" data-page="technicians" id="nav-technicians">
+                <span class="nav-icon">🔧</span><span class="nav-label">Technicians</span>
+            </a>
+            <a href="#" class="nav-item" data-page="products" id="nav-products">
+                <span class="nav-icon">📦</span><span class="nav-label">Products</span>
+            </a>
+
+            <div class="nav-section-label">OPERATIONS</div>
+            <a href="#" class="nav-item" data-page="installations" id="nav-installations">
+                <span class="nav-icon">🛠️</span><span class="nav-label">Installations</span>
+            </a>
+            <a href="#" class="nav-item" data-page="schedules" id="nav-schedules">
+                <span class="nav-icon">📅</span><span class="nav-label">Service Schedule</span>
+                <span class="nav-badge" id="overdue-badge" style="display:none">!</span>
+            </a>
+            <a href="#" class="nav-item" data-page="services" id="nav-services">
+                <span class="nav-icon">⚙️</span><span class="nav-label">Services</span>
+            </a>
+
+            <div class="nav-section-label">FINANCE</div>
+            <a href="#" class="nav-item" data-page="bills" id="nav-bills">
+                <span class="nav-icon">🧾</span><span class="nav-label">Bills & Invoices</span>
+            </a>
+            <a href="#" class="nav-item" data-page="inventory" id="nav-inventory">
+                <span class="nav-icon">🏪</span><span class="nav-label">Inventory</span>
+                <span class="nav-badge" id="stock-badge" style="display:none">!</span>
+            </a>
+            <a href="#" class="nav-item" data-page="sms" id="nav-sms">
+                <span class="nav-icon">💬</span><span class="nav-label">SMS Logs</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="user-avatar" id="sidebar-avatar">R</div>
+                <div class="user-info">
+                    <div class="user-name" id="sidebar-name">Loading…</div>
+                    <div class="user-role">Administrator</div>
+                </div>
+            </div>
+            <button class="btn-logout" id="logout-btn" title="Sign Out">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <!-- TOP NAVBAR -->
+        <header class="topbar">
+            <button class="topbar-menu-btn" id="sidebar-open">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <div class="topbar-title" id="page-title">Dashboard</div>
+            <div class="topbar-actions">
+                <div class="topbar-date" id="topbar-date"></div>
+            </div>
+        </header>
+
+        <!-- PAGE VIEWS -->
+        <div class="page-container">
+
+            <!-- ╔══════════════════════════════╗ -->
+            <!-- ║       DASHBOARD PAGE         ║ -->
+            <!-- ╚══════════════════════════════╝ -->
+            <div class="page active" id="page-dashboard">
+                <div class="page-header">
+                    <h2 class="page-heading">Good Evening, <span id="dash-user-name">Admin</span> 👋</h2>
+                    <p class="page-subheading">Here's what's happening with your service business today.</p>
+                </div>
+
+                <!-- STAT CARDS -->
+                <div class="stats-grid" id="stats-grid">
+                    <div class="stat-card stat-card--blue">
+                        <div class="stat-icon">👤</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-customers">—</div>
+                            <div class="stat-label">Total Customers</div>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-card--cyan">
+                        <div class="stat-icon">🛠️</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-installations">—</div>
+                            <div class="stat-label">Installations</div>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-card--green">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-revenue">—</div>
+                            <div class="stat-label">Total Revenue</div>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-card--gold">
+                        <div class="stat-icon">📈</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-profit">—</div>
+                            <div class="stat-label">Total Profit</div>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-card--orange">
+                        <div class="stat-icon">⚠️</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-overdue">—</div>
+                            <div class="stat-label">Overdue Services</div>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-card--purple">
+                        <div class="stat-icon">🔧</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-services">—</div>
+                            <div class="stat-label">Total Services</div>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-card--red">
+                        <div class="stat-icon">📦</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-lowstock">—</div>
+                            <div class="stat-label">Low Stock Items</div>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-card--teal">
+                        <div class="stat-icon">👷</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-technicians">—</div>
+                            <div class="stat-label">Active Technicians</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CHARTS ROW -->
+                <div class="charts-grid">
+                    <div class="chart-card glass">
+                        <div class="chart-card-header">
+                            <h3>Revenue Overview</h3>
+                            <span class="chart-subtitle">Last 6 months</span>
+                        </div>
+                        <canvas id="revenue-chart" height="150"></canvas>
+                    </div>
+                    <div class="chart-card glass">
+                        <div class="chart-card-header">
+                            <h3>Service Breakdown</h3>
+                            <span class="chart-subtitle">By type</span>
+                        </div>
+                        <canvas id="service-chart" height="150"></canvas>
+                    </div>
+                </div>
+
+                <!-- RECENT SERVICES TABLE -->
+                <div class="section-card glass">
+                    <div class="section-header">
+                        <h3>Recent Services</h3>
+                        <button class="btn btn-sm btn-outline" onclick="App.navigate('services')">View All</button>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="data-table" id="recent-services-table">
+                            <thead><tr>
+                                <th>Customer</th><th>Service Type</th><th>Technician</th>
+                                <th>TDS Before</th><th>TDS After</th><th>Total Bill</th><th>Date</th>
+                            </tr></thead>
+                            <tbody id="recent-services-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ╔══════════════════════════════╗ -->
+            <!-- ║       CUSTOMERS PAGE         ║ -->
+            <!-- ╚══════════════════════════════╝ -->
+            <div class="page" id="page-customers">
+                <div class="page-header">
+                    <div>
+                        <h2 class="page-heading">Customers</h2>
+                        <p class="page-subheading">Manage your customer database</p>
+                    </div>
+                    <button class="btn btn-primary" id="btn-add-customer">+ Add Customer</button>
+                </div>
+                <div class="section-card glass">
+                    <div class="table-toolbar">
+                        <input type="text" class="search-input" id="customer-search" placeholder="🔍  Search by name, mobile, city…">
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead><tr>
+                                <th>#</th><th>Name</th><th>Mobile</th><th>City</th>
+                                <th>Address</th><th>Joined</th><th>Actions</th>
+                            </tr></thead>
+                            <tbody id="customers-body"></tbody>
+                        </table>
+                    </div>
+                    <div class="table-pagination" id="customer-pagination"></div>
+                </div>
+            </div>
+
+            <!-- ╔══════════════════════════════╗ -->
+            <!-- ║      TECHNICIANS PAGE        ║ -->
+            <!-- ╚══════════════════════════════╝ -->
+            <div class="page" id="page-technicians">
+                <div class="page-header">
+                    <div>
+                        <h2 class="page-heading">Technicians</h2>
+                        <p class="page-subheading">Manage your field technicians</p>
+                    </div>
+                    <button class="btn btn-primary" id="btn-add-technician">+ Add Technician</button>
+                </div>
+                <div class="technician-grid" id="technician-grid"></div>
+            </div>
+
+            <!-- ╔══════════════════════════════╗ -->
+            <!-- ║       PRODUCTS PAGE          ║ -->
+            <!-- ╚══════════════════════════════╝ -->
+            <div class="page" id="page-products">
+                <div class="page-header">
+                    <div>
+                        <h2 class="page-heading">Products</h2>
+                        <p class="page-subheading">RO systems and water purifiers catalog</p>
+                    </div>
+                    <button class="btn btn-primary" id="btn-add-product">+ Add Product</button>
+                </div>
+                <div class="section-card glass">
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead><tr>
+                                <th>#</th><th>Product Name</th><th>Brand</th><th>Model</th>
+                                <th>Serial No.</th><th>Warranty</th><th>Actions</th>
+                            </tr></thead>
+                            <tbody id="products-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ╔══════════════════════════════╗ -->
+            <!-- ║     INSTALLATIONS PAGE       ║ -->
+            <!-- ╚══════════════════════════════╝ -->
+            <div class="page" id="page-installations">
+                <div class="page-header">
+                    <div>
+                        <h2 class="page-heading">Installations</h2>
+                        <p class="page-subheading">Track all RO installations with TDS data</p>
+                    </div>
+                    <button class="btn btn-primary" id="btn-add-installation">+ New Installation</button>
+                </div>
+                <div class="section-card glass">
+                    <div class="table-toolbar">
+                        <input type="text" class="search-input" id="installation-search" placeholder="🔍  Search by customer…">
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead><tr>
+                                <th>#</th><th>Customer</th><th>Product</th><th>Technician</th>
+                                <th>Source</th><th>Input TDS</th><th>Output TDS</th>
+                                <th>Selling Price</th><th>Profit</th><th>Date</th><th>Actions</th>
+                            </tr></thead>
+                            <tbody id="installations-body"></tbody>
+                        </table>
+                    </div>
+                    <div class="table-pagination" id="installation-pagination"></div>
+                </div>
+            </div>
+
+            <!-- ╔══════════════════════════════╗ -->
+            <!-- ║    SERVICE SCHEDULES PAGE    ║ -->
+            <!-- ╚══════════════════════════════╝ -->
+            <div class="page" id="page-schedules">
+                <div class="page-header">
+                    <div>
+                        <h2 class="page-heading">Service Schedule</h2>
+                        <p class="page-subheading">Track upcoming and overdue service visits</p>
+                    </div>
+                    <div class="filter-btns">
+                        <button class="btn btn-sm btn-filter active" data-filter="" id="sched-all">All</button>
+                        <button class="btn btn-sm btn-filter" data-filter="Pending" id="sched-pending">Pending</button>
+                        <button class="btn btn-sm btn-filter" data-filter="Overdue" id="sched-overdue">Overdue</button>
+                        <button class="btn btn-sm btn-filter" data-filter="Completed" id="sched-completed">Completed</button>
+                    </div>
+                </div>
+                <div class="section-card glass">
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead><tr>
+                                <th>#</th><th>Customer</th><th>Installation ID</th>
+                                <th>Next Service</th><th>Interval</th><th>Status</th>
+                                <th>Reminder</th><th>Actions</th>
+                            </tr></thead>
+                            <tbody id="schedules-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ╔══════════════════════════════╗ -->
+            <!-- ║       SERVICES PAGE          ║ -->
+            <!-- ╚══════════════════════════════╝ -->
+            <div class="page" id="page-services">
+                <div class="page-header">
+                    <div>
+                        <h2 class="page-heading">Services</h2>
+                        <p class="page-subheading">Service records with TDS readings and parts used</p>
+                    </div>
+                    <button class="btn btn-primary" id="btn-add-service">+ Record Service</button>
+                </div>
+                <div class="section-card glass">
+                    <div class="table-toolbar">
+                        <input type="text" class="search-input" id="service-search" placeholder="🔍  Search by customer…">
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead><tr>
+                                <th>#</th><th>Customer</th><th>Type</th><th>Technician</th>
+                                <th>TDS Before</th><th>TDS After</th><th>Charge</th>
+                                <th>Parts</th><th>Total</th><th>Date</th><th>Actions</th>
+                            </tr></thead>
+                            <tbody id="services-body"></tbody>
+                        </table>
+                    </div>
+                    <div class="table-pagination" id="service-pagination"></div>
+                </div>
+            </div>
+
+            <!-- ╔══════════════════════════════╗ -->
+            <!-- ║      BILLS PAGE              ║ -->
+            <!-- ╚══════════════════════════════╝ -->
+            <div class="page" id="page-bills">
+                <div class="page-header">
+                    <div>
+                        <h2 class="page-heading">Bills & Invoices</h2>
+                        <p class="page-subheading">All customer invoices and payment status</p>
+                    </div>
+                    <button class="btn btn-primary" id="btn-add-bill">+ Create Bill</button>
+                </div>
+                <div class="section-card glass">
+                    <div class="table-toolbar">
+                        <input type="text" class="search-input" id="bill-search" placeholder="🔍  Search by customer or invoice…">
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead><tr>
+                                <th>Invoice #</th><th>Customer</th><th>Date</th>
+                                <th>Subtotal</th><th>Service Charge</th><th>Grand Total</th>
+                                <th>Payment</th><th>Mode</th><th>Actions</th>
+                            </tr></thead>
+                            <tbody id="bills-body"></tbody>
+                        </table>
+                    </div>
+                    <div class="table-pagination" id="bill-pagination"></div>
+                </div>
+            </div>
+
+            <!-- ╔══════════════════════════════╗ -->
+            <!-- ║      INVENTORY PAGE          ║ -->
+            <!-- ╚══════════════════════════════╝ -->
+            <div class="page" id="page-inventory">
+                <div class="page-header">
+                    <div>
+                        <h2 class="page-heading">Inventory</h2>
+                        <p class="page-subheading">Spare parts stock management</p>
+                    </div>
+                    <div style="display:flex;gap:0.75rem;">
+                        <button class="btn btn-sm btn-outline" id="btn-low-stock">⚠ Low Stock</button>
+                        <button class="btn btn-primary" id="btn-add-inventory">+ Add Part</button>
+                    </div>
+                </div>
+                <div class="section-card glass">
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead><tr>
+                                <th>#</th><th>Part Name</th><th>Brand</th>
+                                <th>Stock</th><th>Reorder Lvl</th><th>Buy Price</th>
+                                <th>Sell Price</th><th>Status</th><th>Actions</th>
+                            </tr></thead>
+                            <tbody id="inventory-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ╔══════════════════════════════╗ -->
+            <!-- ║       SMS LOGS PAGE          ║ -->
+            <!-- ╚══════════════════════════════╝ -->
+            <div class="page" id="page-sms">
+                <div class="page-header">
+                    <div>
+                        <h2 class="page-heading">SMS Logs</h2>
+                        <p class="page-subheading">Automated message history to customers</p>
+                    </div>
+                </div>
+                <div class="section-card glass">
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead><tr>
+                                <th>#</th><th>Customer</th><th>Mobile</th>
+                                <th>Message</th><th>Status</th><th>Sent At</th>
+                            </tr></thead>
+                            <tbody id="sms-body"></tbody>
+                        </table>
+                    </div>
+                    <div class="table-pagination" id="sms-pagination"></div>
+                </div>
+            </div>
+
+        </div><!-- end .page-container -->
+    </div><!-- end .main-content -->
+</div><!-- end #app -->
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- MODALS -->
+<!-- ═══════════════════════════════════════════════════════ -->
+
+<!-- Customer Modal -->
+<div class="modal-overlay" id="modal-customer">
+    <div class="modal glass">
+        <div class="modal-header">
+            <h3 id="customer-modal-title">Add Customer</h3>
+            <button class="modal-close" data-modal="modal-customer">✕</button>
+        </div>
+        <form id="customer-form" class="modal-form">
+            <input type="hidden" id="cf-id">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" id="cf-name" required placeholder="e.g. Rajesh Sharma">
+                </div>
+                <div class="form-group">
+                    <label>Mobile *</label>
+                    <input type="tel" id="cf-mobile" required placeholder="10-digit mobile number">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Alternate Mobile</label>
+                    <input type="tel" id="cf-altmobile" placeholder="Optional">
+                </div>
+                <div class="form-group">
+                    <label>City</label>
+                    <input type="text" id="cf-city" placeholder="e.g. Hyderabad">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Address</label>
+                <textarea id="cf-address" rows="2" placeholder="House / Flat No., Street, Area"></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Landmark</label>
+                    <input type="text" id="cf-landmark" placeholder="Nearby landmark">
+                </div>
+                <div class="form-group">
+                    <label>Pincode</label>
+                    <input type="text" id="cf-pincode" placeholder="6-digit pincode">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" data-modal="modal-customer">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="customer-submit-btn">Save Customer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Technician Modal -->
+<div class="modal-overlay" id="modal-technician">
+    <div class="modal glass">
+        <div class="modal-header">
+            <h3 id="technician-modal-title">Add Technician</h3>
+            <button class="modal-close" data-modal="modal-technician">✕</button>
+        </div>
+        <form id="technician-form" class="modal-form">
+            <input type="hidden" id="tf-id">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" id="tf-name" required placeholder="Technician name">
+                </div>
+                <div class="form-group">
+                    <label>Mobile *</label>
+                    <input type="tel" id="tf-mobile" required placeholder="Mobile number">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="tf-email" placeholder="email@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="tf-status">
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Address</label>
+                <textarea id="tf-address" rows="2" placeholder="Home address"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" data-modal="modal-technician">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Technician</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Product Modal -->
+<div class="modal-overlay" id="modal-product">
+    <div class="modal glass">
+        <div class="modal-header">
+            <h3>Add / Edit Product</h3>
+            <button class="modal-close" data-modal="modal-product">✕</button>
+        </div>
+        <form id="product-form" class="modal-form">
+            <input type="hidden" id="pf-id">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Product Name *</label>
+                    <input type="text" id="pf-name" required placeholder="e.g. AquaGuard Marvel 6L">
+                </div>
+                <div class="form-group">
+                    <label>Brand *</label>
+                    <input type="text" id="pf-brand" required placeholder="e.g. Eureka Forbes">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Model Number</label>
+                    <input type="text" id="pf-model" placeholder="Model code">
+                </div>
+                <div class="form-group">
+                    <label>Serial Number</label>
+                    <input type="text" id="pf-serial" placeholder="Serial number">
+                </div>
+            </div>
+            <div class="form-group" style="max-width:200px">
+                <label>Warranty (months)</label>
+                <input type="number" id="pf-warranty" placeholder="12" value="12" min="0">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" data-modal="modal-product">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Product</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Installation Modal -->
+<div class="modal-overlay" id="modal-installation">
+    <div class="modal modal-lg glass">
+        <div class="modal-header">
+            <h3>New Installation</h3>
+            <button class="modal-close" data-modal="modal-installation">✕</button>
+        </div>
+        <form id="installation-form" class="modal-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Customer *</label>
+                    <select id="if-customer" required><option value="">-- Select Customer --</option></select>
+                </div>
+                <div class="form-group">
+                    <label>Product *</label>
+                    <select id="if-product" required><option value="">-- Select Product --</option></select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Technician *</label>
+                    <select id="if-technician" required><option value="">-- Select Technician --</option></select>
+                </div>
+                <div class="form-group">
+                    <label>Installation Date *</label>
+                    <input type="date" id="if-date" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Source Water Type</label>
+                    <select id="if-source">
+                        <option value="Municipal">Municipal</option>
+                        <option value="Borewell">Borewell</option>
+                        <option value="Tank Water">Tank Water</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Service Interval (months)</label>
+                    <input type="number" id="if-interval" value="6" min="1" max="24">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Input TDS (ppm)</label>
+                    <input type="number" id="if-input-tds" placeholder="e.g. 450">
+                </div>
+                <div class="form-group">
+                    <label>Output TDS (ppm)</label>
+                    <input type="number" id="if-output-tds" placeholder="e.g. 25">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Cost Price (₹) *</label>
+                    <input type="number" id="if-cost" required placeholder="e.g. 8000" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Selling Price (₹) *</label>
+                    <input type="number" id="if-sell" required placeholder="e.g. 12000" min="0">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Remarks</label>
+                <textarea id="if-remarks" rows="2" placeholder="Any notes about this installation"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" data-modal="modal-installation">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Installation</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Service Modal -->
+<div class="modal-overlay" id="modal-service">
+    <div class="modal modal-lg glass">
+        <div class="modal-header">
+            <h3>Record Service Visit</h3>
+            <button class="modal-close" data-modal="modal-service">✕</button>
+        </div>
+        <form id="service-form" class="modal-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Customer *</label>
+                    <select id="sf-customer" required><option value="">-- Select Customer --</option></select>
+                </div>
+                <div class="form-group">
+                    <label>Installation *</label>
+                    <select id="sf-installation" required><option value="">-- Select after customer --</option></select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Technician *</label>
+                    <select id="sf-technician" required><option value="">-- Select Technician --</option></select>
+                </div>
+                <div class="form-group">
+                    <label>Service Date *</label>
+                    <input type="date" id="sf-date" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Service Type *</label>
+                    <select id="sf-type" required>
+                        <option value="Regular">Regular</option>
+                        <option value="Paid">Paid</option>
+                        <option value="Complaint">Complaint</option>
+                        <option value="Emergency">Emergency</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Service Charge (₹)</label>
+                    <input type="number" id="sf-charge" placeholder="e.g. 300" min="0">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>TDS Before Service (ppm)</label>
+                    <input type="number" id="sf-tds-before" placeholder="e.g. 150">
+                </div>
+                <div class="form-group">
+                    <label>TDS After Service (ppm)</label>
+                    <input type="number" id="sf-tds-after" placeholder="e.g. 25">
+                </div>
+            </div>
+
+            <!-- Parts Section -->
+            <div class="parts-section">
+                <div class="parts-header">
+                    <h4>Spare Parts Used</h4>
+                    <button type="button" class="btn btn-sm btn-outline" id="btn-add-part">+ Add Part</button>
+                </div>
+                <div id="parts-list"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Remarks</label>
+                <textarea id="sf-remarks" rows="2" placeholder="Service notes"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" data-modal="modal-service">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Service Record</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Bill Modal -->
+<div class="modal-overlay" id="modal-bill">
+    <div class="modal glass">
+        <div class="modal-header">
+            <h3>Create Invoice</h3>
+            <button class="modal-close" data-modal="modal-bill">✕</button>
+        </div>
+        <form id="bill-form" class="modal-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Customer *</label>
+                    <select id="bf-customer" required><option value="">-- Select Customer --</option></select>
+                </div>
+                <div class="form-group">
+                    <label>Bill Date *</label>
+                    <input type="date" id="bf-date" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Installation ID</label>
+                    <input type="number" id="bf-installation" placeholder="Optional">
+                </div>
+                <div class="form-group">
+                    <label>Service ID</label>
+                    <input type="number" id="bf-service" placeholder="Optional">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Subtotal (₹)</label>
+                    <input type="number" id="bf-subtotal" placeholder="0.00" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Service Charge (₹)</label>
+                    <input type="number" id="bf-charge" placeholder="0.00" min="0">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Grand Total (₹) *</label>
+                    <input type="number" id="bf-total" required placeholder="0.00" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Payment Mode</label>
+                    <select id="bf-mode">
+                        <option value="Cash">Cash</option>
+                        <option value="UPI">UPI</option>
+                        <option value="Card">Card</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Payment Status</label>
+                <select id="bf-status">
+                    <option value="Paid">Paid</option>
+                    <option value="Unpaid">Unpaid</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" data-modal="modal-bill">Cancel</button>
+                <button type="submit" class="btn btn-primary">Generate Invoice</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Inventory Modal -->
+<div class="modal-overlay" id="modal-inventory">
+    <div class="modal glass">
+        <div class="modal-header">
+            <h3 id="inventory-modal-title">Add Inventory Item</h3>
+            <button class="modal-close" data-modal="modal-inventory">✕</button>
+        </div>
+        <form id="inventory-form" class="modal-form">
+            <input type="hidden" id="invf-id">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Part Name *</label>
+                    <input type="text" id="invf-name" required placeholder="e.g. RO Membrane 75 GPD">
+                </div>
+                <div class="form-group">
+                    <label>Brand</label>
+                    <input type="text" id="invf-brand" placeholder="e.g. Vontron">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Available Stock</label>
+                    <input type="number" id="invf-stock" placeholder="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Reorder Level</label>
+                    <input type="number" id="invf-reorder" placeholder="5" min="0">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Purchase Price (₹)</label>
+                    <input type="number" id="invf-purchase" placeholder="0.00" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Selling Price (₹)</label>
+                    <input type="number" id="invf-selling" placeholder="0.00" min="0">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" data-modal="modal-inventory">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Item</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Customer Detail Modal -->
+<div class="modal-overlay" id="modal-customer-detail">
+    <div class="modal modal-xl glass">
+        <div class="modal-header">
+            <h3 id="cust-detail-title">Customer History</h3>
+            <button class="modal-close" data-modal="modal-customer-detail">✕</button>
+        </div>
+        <div id="customer-detail-body" class="customer-detail-body"></div>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Sidebar Overlay (mobile) -->
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
