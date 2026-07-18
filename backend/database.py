@@ -215,6 +215,7 @@ class ServiceSchedule(db.Model):
             'installation_id': self.installation_id,
             'customer_id': self.customer_id,
             'customer_name': self.customer.customer_name if self.customer else None,
+            'customer_mobile': self.customer.mobile if self.customer else None,
             'next_service_date': self.next_service_date.isoformat() if self.next_service_date else None,
             'service_interval_months': self.service_interval_months,
             'status': self.status,

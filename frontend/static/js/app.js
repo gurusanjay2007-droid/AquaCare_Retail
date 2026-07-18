@@ -717,7 +717,8 @@ async function loadSchedules() {
                 <div class="action-btns">
                     ${s.status !== 'Completed' ? `
                         <button class="btn-icon" title="Mark Completed" onclick="markScheduleComplete(${s.id})">✓</button>
-                        <button class="btn-icon" title="Mark Reminder Sent" onclick="markReminderSent(${s.id})">📲</button>
+                        <button class="btn-icon" title="Send SMS (Local App)" onclick="sendReminderSMS(${s.id}, '${s.customer_name}', '${s.customer_mobile || ''}', '${s.next_service_date}')">📲</button>
+                        <button class="btn-icon" title="Send WhatsApp Message" style="color:#25D366" onclick="sendReminderWhatsApp(${s.id}, '${s.customer_name}', '${s.customer_mobile || ''}', '${s.next_service_date}')">💬</button>
                     ` : ''}
                 </div>
             </td>
@@ -739,9 +740,26 @@ function markScheduleComplete(id) {
         if (res.success) { toast('Marked as Completed', 'success'); loadSchedules(); }
     });
 }
-function markReminderSent(id) {
+function sendReminderSMS(id, name, mobile, dateStr) {
+    const formattedDate = new Date(dateStr).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+    const msg = `Dear ${name}, your PureFlow RO Service is scheduled for ${formattedDate}. Please confirm your availability. Thank you!`;
+    const cleanMobile = mobile.replace(/\D/g, '');
+    const smsUrl = `sms:${cleanMobile}?body=${encodeURIComponent(msg)}`;
+    window.open(smsUrl, '_self');
     API.put(`/api/schedules/${id}`, { reminder_sent: 'Yes' }).then(res => {
-        if (res.success) { toast('Reminder marked as sent', 'success'); loadSchedules(); }
+        if (res.success) { toast('Opened SMS app. Status marked as sent.', 'success'); loadSchedules(); }
+    });
+}
+
+function sendReminderWhatsApp(id, name, mobile, dateStr) {
+    const formattedDate = new Date(dateStr).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+    const msg = `Dear ${name}, your PureFlow RO Service is scheduled for ${formattedDate}. Please confirm your availability. Thank you!`;
+    let cleanMobile = mobile.replace(/\D/g, '');
+    if (cleanMobile.length === 10) cleanMobile = '91' + cleanMobile;
+    const waUrl = `https://wa.me/${cleanMobile}?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
+    API.put(`/api/schedules/${id}`, { reminder_sent: 'Yes' }).then(res => {
+        if (res.success) { toast('Opened WhatsApp. Status marked as sent.', 'success'); loadSchedules(); }
     });
 }
 
