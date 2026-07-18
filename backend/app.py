@@ -23,10 +23,14 @@ STATIC_DIR = os.path.join(BASE_DIR, 'frontend', 'static')
 app = Flask(__name__, template_folder=TMPL_DIR, static_folder=STATIC_DIR, instance_path=os.path.join(BASE_DIR, 'instance'))
 
 app.config['SECRET_KEY']            = os.getenv('SECRET_KEY', 'pureflow-dev-secret-2024')
-app.config['SQLALCHEMY_DATABASE_URI']= os.getenv('DATABASE_URL', f'sqlite:///{os.path.join(BASE_DIR, "pureflow.db")}')
+sqlite_fallback = 'sqlite:///:memory:' if os.getenv('VERCEL') == '1' else f'sqlite:///{os.path.join(BASE_DIR, "pureflow.db")}'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', sqlite_fallback)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SESSION_TYPE']          = 'filesystem'
-app.config['SESSION_FILE_DIR']      = os.path.join(BASE_DIR, 'flask_session')
+if os.getenv('VERCEL') == '1':
+    app.config['SESSION_FILE_DIR']  = '/tmp/flask_session'
+else:
+    app.config['SESSION_FILE_DIR']  = os.path.join(BASE_DIR, 'flask_session')
 
 
 
@@ -827,6 +831,15 @@ def create_app():
     with app.app_context():
         try:
             db.create_all()
+            # If in-memory database on Vercel, auto-seed with default admin login and data
+            is_sqlite_memory = 'sqlite:///:memory:' in app.config['SQLALCHEMY_DATABASE_URI']
+            if is_sqlite_memory and User.query.count() == 0:
+                from backend.seed_data import seed
+                try:
+                    seed()
+                    print("In-memory database auto-seeded successfully.")
+                except Exception as seed_err:
+                    print(f"Warning: Could not auto-seed database: {seed_err}")
         except Exception as e:
             print(f"Warning: db.create_all() failed (expected on Vercel if DATABASE_URL is not set/configured): {e}")
     return app
