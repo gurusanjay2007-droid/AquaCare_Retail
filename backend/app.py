@@ -67,6 +67,11 @@ def send_and_log_sms(customer, message):
     api_key = os.getenv("SMS_API_KEY")
     status = 'Sent (Simulated)'
     
+    # Auto-prepend country code for international SMS APIs (e.g. +91 for India)
+    phone = customer.mobile.strip()
+    if len(phone) == 10 and phone.isdigit():
+        phone = "+91" + phone
+        
     if api_key:
         params = {
             'authorization': api_key,
@@ -74,7 +79,7 @@ def send_and_log_sms(customer, message):
             'sender_id': 'TXTIND',
             'message': message,
             'language': 'english',
-            'numbers': customer.mobile
+            'numbers': phone
         }
         url = "https://www.fast2sms.com/dev/bulkV2?" + urllib.parse.urlencode(params)
         try:
@@ -87,6 +92,24 @@ def send_and_log_sms(customer, message):
                     status = f"Failed: {res_data.get('message', 'Unknown Error')}"
         except Exception as e:
             status = f"Error: {str(e)}"
+    else:
+        # Fallback to Textbelt free tier (1 free SMS per day per IP) for instant testing
+        try:
+            url = "https://textbelt.com/text"
+            data_payload = urllib.parse.urlencode({
+                'phone': phone,
+                'message': message,
+                'key': 'textbelt'
+            }).encode('utf-8')
+            req = urllib.request.Request(url, data=data_payload, method='POST')
+            with urllib.request.urlopen(req, timeout=6) as response:
+                res_data = json.loads(response.read().decode('utf-8'))
+                if res_data.get('success'):
+                    status = 'Delivered (Free Textbelt)'
+                else:
+                    status = f"Simulated (Textbelt limit: {res_data.get('error')})"
+        except Exception as e:
+            status = f"Simulated (Error: {str(e)})"
             
     sms = SmsLog(
         customer_id=customer.id,
@@ -96,7 +119,7 @@ def send_and_log_sms(customer, message):
         sent_at=datetime.utcnow()
     )
     db.session.add(sms)
-    return status in ['Delivered', 'Sent (Simulated)']
+    return status in ['Delivered', 'Delivered (Free Textbelt)', 'Sent (Simulated)']
 
 def log_sms(customer, message):
     return send_and_log_sms(customer, message)
