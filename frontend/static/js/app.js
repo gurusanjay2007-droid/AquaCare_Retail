@@ -147,6 +147,23 @@ updateDate();
 // AUTH
 // ═══════════════════════════════════════════════════════════
 const loginForm = document.getElementById('login-form');
+const signupForm = document.getElementById('signup-form');
+const loginHint = document.getElementById('login-hint-text');
+
+document.getElementById('btn-to-signup').addEventListener('click', e => {
+    e.preventDefault();
+    loginForm.classList.add('hidden');
+    loginHint.classList.add('hidden');
+    signupForm.classList.remove('hidden');
+});
+
+document.getElementById('btn-to-login').addEventListener('click', e => {
+    e.preventDefault();
+    signupForm.classList.add('hidden');
+    loginForm.classList.remove('hidden');
+    loginHint.classList.remove('hidden');
+});
+
 loginForm.addEventListener('submit', async e => {
     e.preventDefault();
     const btn  = document.getElementById('login-btn');
@@ -163,6 +180,30 @@ loginForm.addEventListener('submit', async e => {
         toast('Welcome back, ' + res.data.owner_name + '! 👋', 'success');
     } else {
         toast(res.message || 'Login failed', 'error');
+    }
+});
+
+signupForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = document.getElementById('signup-btn');
+    btn.innerHTML = '<span>Creating Account…</span>';
+    btn.disabled = true;
+    const res = await API.post('/api/auth/register', {
+        business_name:    document.getElementById('signup-business-name').value,
+        owner_name:       document.getElementById('signup-owner-name').value,
+        email:            document.getElementById('signup-email').value,
+        mobile:           document.getElementById('signup-mobile').value,
+        password:         document.getElementById('signup-password').value,
+        business_address: document.getElementById('signup-address').value,
+        gst_number:       document.getElementById('signup-gst').value || null
+    });
+    btn.innerHTML = '<span>Create Business Account</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+    btn.disabled = false;
+    if (res.success) {
+        showApp(res.data);
+        toast('Business registered successfully! Welcome! 🎉', 'success');
+    } else {
+        toast(res.message || 'Registration failed', 'error');
     }
 });
 
