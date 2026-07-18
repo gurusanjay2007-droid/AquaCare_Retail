@@ -59,15 +59,47 @@ def generate_invoice_number():
     count = Bill.query.filter(Bill.bill_date == today).count() + 1
     return f"INV-{today.strftime('%Y%m%d')}-{count:04d}"
 
-def log_sms(customer, message):
+def send_and_log_sms(customer, message):
+    import urllib.request
+    import urllib.parse
+    import json
+    
+    api_key = os.getenv("SMS_API_KEY")
+    status = 'Sent (Simulated)'
+    
+    if api_key:
+        params = {
+            'authorization': api_key,
+            'route': 'v3',
+            'sender_id': 'TXTIND',
+            'message': message,
+            'language': 'english',
+            'numbers': customer.mobile
+        }
+        url = "https://www.fast2sms.com/dev/bulkV2?" + urllib.parse.urlencode(params)
+        try:
+            req = urllib.request.Request(url, headers={'cache-control': 'no-cache'})
+            with urllib.request.urlopen(req, timeout=8) as response:
+                res_data = json.loads(response.read().decode('utf-8'))
+                if res_data.get('return'):
+                    status = 'Delivered'
+                else:
+                    status = f"Failed: {res_data.get('message', 'Unknown Error')}"
+        except Exception as e:
+            status = f"Error: {str(e)}"
+            
     sms = SmsLog(
         customer_id=customer.id,
         mobile=customer.mobile,
         message=message,
-        status='Sent',
+        status=status,
         sent_at=datetime.utcnow()
     )
     db.session.add(sms)
+    return status in ['Delivered', 'Sent (Simulated)']
+
+def log_sms(customer, message):
+    return send_and_log_sms(customer, message)
 
 
 # ─── Static / SPA ────────────────────────────────────────────
@@ -484,6 +516,17 @@ def get_schedules():
 def update_schedule(sid):
     s    = ServiceSchedule.query.get_or_404(sid)
     data = request.get_json()
+    
+    # Trigger actual SMS if manual reminder sent via UI
+    if data.get('reminder_sent') == 'Yes' and s.reminder_sent != 'Yes':
+        customer = s.customer
+        if customer:
+            msg = (
+                f"Dear {customer.customer_name}, your PureFlow RO Service is scheduled for "
+                f"{s.next_service_date.strftime('%d-%b-%Y')}. Please confirm your availability. Thank you!"
+            )
+            send_and_log_sms(customer, msg)
+            
     for field in ['status','reminder_sent','next_service_date','service_interval_months']:
         if field in data:
             if field == 'next_service_date':
@@ -715,6 +758,43 @@ def get_sms_logs():
     total = SmsLog.query.count()
     items = SmsLog.query.order_by(SmsLog.sent_at.desc()).offset((page-1)*limit).limit(limit).all()
     return api_success({'items': [s.to_dict() for s in items], 'total': total})
+
+
+# ═══════════════════════════════════════════════════════════════
+# CRON / AUTOMATED REMINDERS
+# ═══════════════════════════════════════════════════════════════
+@app.route('/api/cron/send-reminders', methods=['GET', 'POST'])
+def cron_send_reminders():
+    cron_secret = os.getenv('CRON_SECRET')
+    if cron_secret and request.headers.get('Authorization') != f"Bearer {cron_secret}":
+        return api_error('Unauthorized cron request', 401)
+
+    today = date.today()
+    target_date = today + timedelta(days=3)  # Remind 3 days in advance
+    
+    upcoming_schedules = ServiceSchedule.query.filter(
+        ServiceSchedule.status.in_(['Pending', 'Overdue']),
+        ServiceSchedule.next_service_date <= target_date,
+        ServiceSchedule.reminder_sent == 'No'
+    ).all()
+
+    sent_count = 0
+    for s in upcoming_schedules:
+        customer = s.customer
+        if not customer:
+            continue
+        
+        msg = (
+            f"Dear {customer.customer_name}, your PureFlow RO Service is due on "
+            f"{s.next_service_date.strftime('%d-%b-%Y')}. Our technician will contact you shortly. Thank you!"
+        )
+        success = send_and_log_sms(customer, msg)
+        if success:
+            s.reminder_sent = 'Yes'
+            sent_count += 1
+            
+    db.session.commit()
+    return api_success({'reminders_sent': sent_count}, f"Automated reminder scan complete. Sent {sent_count} reminders.")
 
 
 # ═══════════════════════════════════════════════════════════════
