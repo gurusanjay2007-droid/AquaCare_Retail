@@ -722,7 +722,10 @@ def get_sms_logs():
 # ═══════════════════════════════════════════════════════════════
 def create_app():
     with app.app_context():
-        db.create_all()
+        try:
+            db.create_all()
+        except Exception as e:
+            print(f"Warning: db.create_all() failed (expected on Vercel if DATABASE_URL is not set/configured): {e}")
     return app
 
 

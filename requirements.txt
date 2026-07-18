@@ -5,3 +5,4 @@ Flask-Session==0.8.0
 python-dotenv==1.2.2
 cryptography==46.0.7
 Werkzeug==3.0.1
+pymysql==1.1.0
