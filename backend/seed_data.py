@@ -51,12 +51,13 @@ def seed():
 
         # ── Technicians ───────────────────────────────────────
         techs = [
-            Technician(technician_name="Suresh Babu",   mobile="9000111001", email="suresh@pureflow.in",  address="LB Nagar, Hyderabad",    status="Active"),
-            Technician(technician_name="Ramesh Yadav",  mobile="9000111002", email="ramesh@pureflow.in",  address="Dilsukhnagar, Hyderabad", status="Active"),
-            Technician(technician_name="Prasad Reddy",  mobile="9000111003", email="prasad@pureflow.in",  address="Kukatpally, Hyderabad",   status="Active"),
-            Technician(technician_name="Vinod Kumar",   mobile="9000111004", email="vinod@pureflow.in",   address="Begumpet, Hyderabad",     status="Inactive"),
+            Technician(technician_name="Suresh Babu",   mobile="9000111001", email="suresh@pureflow.in",  address="LB Nagar, Hyderabad",    status="Active",   tech_id="TECH101"),
+            Technician(technician_name="Ramesh Yadav",  mobile="9000111002", email="ramesh@pureflow.in",  address="Dilsukhnagar, Hyderabad", status="Active",  tech_id="TECH102"),
+            Technician(technician_name="Prasad Reddy",  mobile="9000111003", email="prasad@pureflow.in",  address="Kukatpally, Hyderabad",   status="Active",   tech_id="TECH103"),
+            Technician(technician_name="Vinod Kumar",   mobile="9000111004", email="vinod@pureflow.in",   address="Begumpet, Hyderabad",     status="Inactive", tech_id="TECH104"),
         ]
         for t in techs:
+            t.set_passcode("123456")
             db.session.add(t)
         db.session.flush()
         print(f"  [+] {len(techs)} technicians created")

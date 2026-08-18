@@ -8,7 +8,9 @@ import json
 from datetime import datetime, date, timedelta
 from functools import wraps
 
-from flask import Flask, request, jsonify, send_from_directory, session
+import io
+from flask import Flask, request, jsonify, send_from_directory, send_file, session
+
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_session import Session
 from dotenv import load_dotenv
@@ -139,6 +141,29 @@ def serve_static(filename):
     return send_from_directory(STATIC_DIR, filename)
 
 
+UPLOAD_FOLDER = os.path.join(STATIC_DIR, 'uploads', 'installations')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# ═══════════════════════════════════════════════════════════════
+# FILE UPLOAD ROUTE
+# ═══════════════════════════════════════════════════════════════
+@app.route('/api/upload', methods=['POST'])
+def upload_file():
+    if 'photo' not in request.files:
+        return api_error('No photo file provided')
+    file = request.files['photo']
+    if file.filename == '':
+        return api_error('No selected file')
+    if file:
+        ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
+        filename = f"inst_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{os.urandom(4).hex()}.{ext}"
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(filepath)
+        photo_url = f"/static/uploads/installations/{filename}"
+        return api_success({'photo_url': photo_url}, 'File uploaded successfully')
+    return api_error('Failed to upload file')
+
+
 # ═══════════════════════════════════════════════════════════════
 # AUTH ROUTES
 # ═══════════════════════════════════════════════════════════════
@@ -164,8 +189,11 @@ def register():
     user.set_password(data['password'])
     db.session.add(user)
     db.session.commit()
+    session['user_role'] = 'admin'
     login_user(user)
-    return api_success(user.to_dict(), 'Registered successfully', 201)
+    res_data = user.to_dict()
+    res_data['role'] = 'admin'
+    return api_success(res_data, 'Registered successfully', 201)
 
 
 @app.route('/api/auth/login', methods=['POST'])
@@ -176,21 +204,55 @@ def login():
     user = User.query.filter_by(email=email).first()
     if not user or not user.check_password(password):
         return api_error('Invalid email or password', 401)
+    session['user_role'] = 'admin'
     login_user(user, remember=True)
-    return api_success(user.to_dict(), 'Logged in')
+    res_data = user.to_dict()
+    res_data['role'] = 'admin'
+    return api_success(res_data, 'Logged in')
+
+
+@app.route('/api/auth/tech-login', methods=['POST'])
+def tech_login():
+    data = request.get_json() or {}
+    tech_id = data.get('tech_id', '').strip()
+    passcode = data.get('passcode', '').strip()
+    if not tech_id or not passcode:
+        return api_error('Tech ID and passcode are required')
+
+    t = Technician.query.filter_by(tech_id=tech_id).first()
+    if not t or not t.check_passcode(passcode):
+        return api_error('Invalid Technician ID or Passcode', 401)
+    if t.status != 'Active':
+        return api_error('Technician account is inactive. Please contact Hub Manager.', 403)
+
+    session['tech_db_id'] = t.id
+    session['tech_id'] = t.tech_id
+    session['user_role'] = 'technician'
+
+    res_data = t.to_dict()
+    res_data['role'] = 'technician'
+    return api_success(res_data, 'Logged in as Technician')
 
 
 @app.route('/api/auth/logout', methods=['POST'])
-@login_required
 def logout():
     logout_user()
+    session.clear()
     return api_success(message='Logged out')
 
 
 @app.route('/api/auth/me', methods=['GET'])
 def me():
     if current_user.is_authenticated:
-        return api_success(current_user.to_dict())
+        res_data = current_user.to_dict()
+        res_data['role'] = 'admin'
+        return api_success(res_data)
+    elif session.get('user_role') == 'technician' and session.get('tech_db_id'):
+        t = Technician.query.get(session.get('tech_db_id'))
+        if t:
+            res_data = t.to_dict()
+            res_data['role'] = 'technician'
+            return api_success(res_data)
     return api_error('Not authenticated', 401)
 
 
@@ -247,6 +309,58 @@ def dashboard():
     # Low stock items
     low_stock_count = sum(1 for i in Inventory.query.all() if i.is_low_stock)
 
+    # ── Daily Service Box Summary & List for Today ──
+    today_completed_services = Service.query.filter_by(service_date=today).all()
+    today_pending_schedules  = ServiceSchedule.query.filter_by(next_service_date=today, status='Pending').all()
+    all_overdue_schedules    = ServiceSchedule.query.filter(
+        ServiceSchedule.status == 'Overdue',
+        ServiceSchedule.next_service_date < today
+    ).all()
+
+    today_completed_count = len(today_completed_services)
+    today_pending_count   = len(today_pending_schedules)
+    today_overdue_count   = len(all_overdue_schedules)
+    today_total_count     = today_completed_count + today_pending_count + today_overdue_count
+
+    # Daily service list items
+    daily_service_list = []
+    for s in today_completed_services:
+        daily_service_list.append({
+            'type': 'Service',
+            'id': s.id,
+            'customer_name': s.customer.customer_name if s.customer else 'N/A',
+            'customer_mobile': s.customer.mobile if s.customer else 'N/A',
+            'technician_name': s.technician.technician_name if s.technician else 'N/A',
+            'service_type': s.service_type,
+            'status': 'Completed',
+            'amount': float(s.total_bill or 0),
+            'date': s.service_date.isoformat()
+        })
+    for sc in today_pending_schedules:
+        daily_service_list.append({
+            'type': 'Schedule',
+            'id': sc.id,
+            'customer_name': sc.customer.customer_name if sc.customer else 'N/A',
+            'customer_mobile': sc.customer.mobile if sc.customer else 'N/A',
+            'technician_name': 'Pending Assignment',
+            'service_type': 'Scheduled Visit',
+            'status': 'Pending',
+            'amount': 0.0,
+            'date': sc.next_service_date.isoformat()
+        })
+    for sc in all_overdue_schedules:
+        daily_service_list.append({
+            'type': 'Schedule',
+            'id': sc.id,
+            'customer_name': sc.customer.customer_name if sc.customer else 'N/A',
+            'customer_mobile': sc.customer.mobile if sc.customer else 'N/A',
+            'technician_name': 'Pending Assignment',
+            'service_type': 'Overdue Service',
+            'status': 'Overdue',
+            'amount': 0.0,
+            'date': sc.next_service_date.isoformat()
+        })
+
     # Recent services (last 30 days)
     recent_services = Service.query.filter(
         Service.service_date >= thirty_days_ago
@@ -288,11 +402,19 @@ def dashboard():
             'overdue_count': overdue_count,
             'due_soon': due_soon,
             'low_stock_count': low_stock_count,
+            'daily_services': {
+                'total': today_total_count,
+                'completed': today_completed_count,
+                'pending': today_pending_count,
+                'overdue': today_overdue_count,
+                'list': daily_service_list
+            }
         },
         'monthly_revenue': monthly_data,
         'service_types': service_types,
         'recent_services': [s.to_dict() for s in recent_services],
     })
+
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -377,7 +499,24 @@ def create_technician():
     data = request.get_json()
     if not data.get('technician_name') or not data.get('mobile'):
         return api_error('technician_name and mobile are required')
-    t = Technician(**{k: data.get(k) for k in ['technician_name','mobile','email','address','status']})
+    
+    tech_id = data.get('tech_id')
+    if not tech_id:
+        count = Technician.query.count() + 101
+        tech_id = f"TECH{count}"
+
+    if Technician.query.filter_by(tech_id=tech_id).first():
+        return api_error(f'Technician ID "{tech_id}" already exists', 409)
+
+    t = Technician(
+        technician_name = data['technician_name'],
+        mobile          = data['mobile'],
+        email           = data.get('email'),
+        address         = data.get('address'),
+        status          = data.get('status', 'Active'),
+        tech_id         = tech_id,
+        passcode        = data.get('passcode', '123456')
+    )
     db.session.add(t)
     db.session.commit()
     return api_success(t.to_dict(), 'Technician created', 201)
@@ -387,8 +526,8 @@ def create_technician():
 def update_technician(tid):
     t    = Technician.query.get_or_404(tid)
     data = request.get_json()
-    for field in ['technician_name','mobile','email','address','status']:
-        if field in data:
+    for field in ['technician_name','mobile','email','address','status','tech_id','passcode','photo_url']:
+        if field in data and data[field] is not None:
             setattr(t, field, data[field])
     db.session.commit()
     return api_success(t.to_dict(), 'Technician updated')
@@ -416,7 +555,15 @@ def create_product():
     data = request.get_json()
     if not data.get('product_name') or not data.get('brand'):
         return api_error('product_name and brand are required')
-    p = Product(**{k: data.get(k) for k in ['product_name','brand','model_number','serial_number','warranty_months']})
+    p = Product(
+        product_name    = data.get('product_name'),
+        brand           = data.get('brand'),
+        model_number    = data.get('model_number'),
+        serial_number   = data.get('serial_number'),
+        cost_price      = float(data.get('cost_price', 0.0)),
+        selling_price   = float(data.get('selling_price', 0.0)),
+        warranty_months = int(data.get('warranty_months', 12))
+    )
     db.session.add(p)
     db.session.commit()
     return api_success(p.to_dict(), 'Product created', 201)
@@ -426,11 +573,17 @@ def create_product():
 def update_product(pid):
     p    = Product.query.get_or_404(pid)
     data = request.get_json()
-    for field in ['product_name','brand','model_number','serial_number','warranty_months']:
+    for field in ['product_name','brand','model_number','serial_number','warranty_months','cost_price','selling_price']:
         if field in data:
-            setattr(p, field, data[field])
+            if field in ['cost_price', 'selling_price']:
+                setattr(p, field, float(data[field]))
+            elif field == 'warranty_months':
+                setattr(p, field, int(data[field]))
+            else:
+                setattr(p, field, data[field])
     db.session.commit()
     return api_success(p.to_dict(), 'Product updated')
+
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -454,29 +607,65 @@ def get_installations():
 
 @app.route('/api/installations', methods=['POST'])
 def create_installation():
-    data = request.get_json()
-    required = ['customer_id','product_id','technician_id','installation_date','selling_price','cost_price']
-    for f in required:
-        if data.get(f) is None:
-            return api_error(f'Field "{f}" is required')
+    data = request.get_json() or {}
+
+    # Handle customer creation on-the-fly if customer_id not passed directly
+    customer_id = data.get('customer_id')
+    if not customer_id:
+        if data.get('customer_name') and data.get('mobile'):
+            mobile = data['mobile'].strip()
+            existing = Customer.query.filter_by(mobile=mobile).first()
+            if existing:
+                customer_id = existing.id
+            else:
+                c = Customer(
+                    customer_name = data['customer_name'].strip(),
+                    mobile        = mobile,
+                    address       = data.get('address'),
+                    city          = data.get('city', 'Hyderabad')
+                )
+                if current_user.is_authenticated:
+                    c.user_id = current_user.id
+                db.session.add(c)
+                db.session.flush()
+                customer_id = c.id
+        else:
+            return api_error('Customer ID or Customer Name & Mobile is required')
+
+    technician_id = data.get('technician_id')
+    if not technician_id and session.get('tech_db_id'):
+        technician_id = session.get('tech_db_id')
+
+    if not customer_id or not data.get('product_id') or not technician_id:
+        return api_error('customer, product, and technician are required')
+
+    product = Product.query.get(data['product_id'])
+    cost_price = float(data.get('cost_price')) if data.get('cost_price') is not None else (float(product.cost_price) if product else 0.0)
+    selling_price = float(data.get('selling_price')) if data.get('selling_price') is not None else (float(product.selling_price) if product else 0.0)
+
+    inst_date_str = data.get('installation_date')
+    if inst_date_str:
+        inst_date = datetime.strptime(inst_date_str, '%Y-%m-%d').date()
+    else:
+        inst_date = date.today()
 
     inst = Installation(
-        customer_id       = data['customer_id'],
+        customer_id       = customer_id,
         product_id        = data['product_id'],
-        technician_id     = data['technician_id'],
+        technician_id     = technician_id,
         installation_photo= data.get('installation_photo'),
-        source_water_type = data.get('source_water_type'),
+        source_water_type = data.get('source_water_type', 'Municipal'),
         input_tds         = data.get('input_tds'),
         output_tds        = data.get('output_tds'),
-        installation_date = datetime.strptime(data['installation_date'], '%Y-%m-%d').date(),
-        cost_price        = float(data['cost_price']),
-        selling_price     = float(data['selling_price']),
+        installation_date = inst_date,
+        cost_price        = cost_price,
+        selling_price     = selling_price,
         remarks           = data.get('remarks'),
     )
     db.session.add(inst)
-    db.session.flush()  # get inst.id
+    db.session.flush()
 
-    # Auto-create service schedule (6 months from installation)
+    # Auto-create service schedule (6 months default or user warranty/interval)
     interval = int(data.get('service_interval_months', 6))
     next_date = inst.installation_date + timedelta(days=30 * interval)
     schedule  = ServiceSchedule(
@@ -549,19 +738,63 @@ def update_schedule(sid):
         customer = s.customer
         if customer:
             msg = (
-                f"Dear {customer.customer_name}, your PureFlow RO Service is scheduled for "
+                f"Dear {customer.customer_name}, your Aqua Care RO Service is scheduled for "
                 f"{s.next_service_date.strftime('%d-%b-%Y')}. Please confirm your availability. Thank you!"
             )
             send_and_log_sms(customer, msg)
             
+    is_marking_completed = data.get('status') == 'Completed' and s.status != 'Completed'
+
     for field in ['status','reminder_sent','next_service_date','service_interval_months']:
         if field in data:
             if field == 'next_service_date':
                 s.next_service_date = datetime.strptime(data[field], '%Y-%m-%d').date()
             else:
                 setattr(s, field, data[field])
+
+    next_date_str = None
+    if is_marking_completed:
+        # Auto-reappoint next service schedule
+        interval = s.service_interval_months or 6
+        next_date = date.today() + timedelta(days=30 * interval)
+        new_sched = ServiceSchedule(
+            installation_id         = s.installation_id,
+            customer_id             = s.customer_id,
+            next_service_date       = next_date,
+            service_interval_months = interval,
+            status                  = 'Pending',
+            reminder_sent           = 'No',
+        )
+        db.session.add(new_sched)
+        next_date_str = next_date.strftime('%d-%b-%Y')
+
+        # Create actual Service record for today
+        tech = Technician.query.filter_by(status='Active').first()
+        if not tech:
+            tech = Technician.query.first()
+        tech_id = tech.id if tech else 1
+
+        svc = Service(
+            installation_id = s.installation_id,
+            customer_id     = s.customer_id,
+            technician_id   = tech_id,
+            service_date    = date.today(),
+            service_type    = 'Regular',
+            service_charge  = 0.00,
+            remarks         = 'Marked completed from schedules checklist'
+        )
+        db.session.add(svc)
+
     db.session.commit()
-    return api_success(s.to_dict(), 'Schedule updated')
+
+    res_data = s.to_dict()
+    if next_date_str:
+        msg = f"Service marked completed! Reappointed for next visit on {next_date_str}."
+    else:
+        msg = "Schedule updated."
+
+    return api_success(res_data, msg)
+
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -585,18 +818,40 @@ def get_services():
 
 @app.route('/api/services', methods=['POST'])
 def create_service():
-    data = request.get_json()
-    required = ['installation_id','customer_id','technician_id','service_date','service_type']
-    for f in required:
-        if not data.get(f):
-            return api_error(f'Field "{f}" is required')
+    data = request.get_json() or {}
+
+    technician_id = data.get('technician_id')
+    if not technician_id and session.get('tech_db_id'):
+        technician_id = session.get('tech_db_id')
+
+    customer_id = data.get('customer_id')
+    installation_id = data.get('installation_id')
+
+    if not installation_id and customer_id:
+        inst = Installation.query.filter_by(customer_id=customer_id).order_by(Installation.installation_date.desc()).first()
+        if inst:
+            installation_id = inst.id
+
+    if not customer_id and installation_id:
+        inst = Installation.query.get(installation_id)
+        if inst:
+            customer_id = inst.customer_id
+
+    if not installation_id or not customer_id or not technician_id:
+        return api_error('customer, installation, and technician are required')
+
+    svc_date_str = data.get('service_date')
+    if svc_date_str:
+        svc_date = datetime.strptime(svc_date_str, '%Y-%m-%d').date()
+    else:
+        svc_date = date.today()
 
     svc = Service(
-        installation_id = data['installation_id'],
-        customer_id     = data['customer_id'],
-        technician_id   = data['technician_id'],
-        service_date    = datetime.strptime(data['service_date'], '%Y-%m-%d').date(),
-        service_type    = data['service_type'],
+        installation_id = installation_id,
+        customer_id     = customer_id,
+        technician_id   = technician_id,
+        service_date    = svc_date,
+        service_type    = data.get('service_type', 'Regular'),
         tds_before      = data.get('tds_before'),
         tds_after       = data.get('tds_after'),
         service_charge  = float(data.get('service_charge', 0)),
@@ -619,7 +874,7 @@ def create_service():
         svc.parts.append(part)
         total_parts_cost += sp_price * qty
 
-        # Deduct from inventory
+        # Optional inventory deduction if item exists
         inv = Inventory.query.filter(
             Inventory.part_name.ilike(pd['part_name'])
         ).first()
@@ -631,6 +886,7 @@ def create_service():
 
     db.session.add(svc)
 
+    next_service_date_str = None
     # Mark schedule as completed
     schedule = ServiceSchedule.query.filter_by(
         installation_id=data['installation_id'],
@@ -656,9 +912,19 @@ def create_service():
             reminder_sent           = 'No',
         )
         db.session.add(new_sched)
+        next_service_date_str = next_date.isoformat()
 
     db.session.commit()
-    return api_success(svc.to_dict(), 'Service recorded', 201)
+
+    res_dict = svc.to_dict()
+    if next_service_date_str:
+        res_dict['next_service_date'] = next_service_date_str
+        msg = f"Service marked complete! Next Service scheduled for {next_date.strftime('%d-%b-%Y')}."
+    else:
+        msg = "Service recorded successfully."
+
+    return api_success(res_dict, msg, 201)
+
 
 
 @app.route('/api/services/<int:sid>', methods=['GET'])
@@ -713,7 +979,7 @@ def create_bill():
         f"Dear {customer.customer_name}, your invoice {bill.invoice_number} "
         f"of Rs.{bill.grand_total:.2f} has been generated. "
         f"Payment Status: {bill.payment_status}. "
-        f"Thank you – PureFlow Service Hub."
+        f"Thank you – Aqua Care Water Solutions."
     )
     log_sms(customer, sms_msg)
     db.session.commit()
@@ -812,7 +1078,7 @@ def cron_send_reminders():
             continue
         
         msg = (
-            f"Dear {customer.customer_name}, your PureFlow RO Service is due on "
+            f"Dear {customer.customer_name}, your Aqua Care RO Service is due on "
             f"{s.next_service_date.strftime('%d-%b-%Y')}. Our technician will contact you shortly. Thank you!"
         )
         success = send_and_log_sms(customer, msg)
@@ -824,13 +1090,409 @@ def cron_send_reminders():
     return api_success({'reminders_sent': sent_count}, f"Automated reminder scan complete. Sent {sent_count} reminders.")
 
 
+def parse_report_dates(filter_type, args):
+    today = date.today()
+    if filter_type == 'all':
+        return date(2000, 1, 1), date(2099, 12, 31)
+    elif filter_type == 'single_date':
+        dt_str = args.get('date')
+        d = datetime.strptime(dt_str, '%Y-%m-%d').date() if dt_str else today
+        return d, d
+    elif filter_type == 'week':
+        dt_str = args.get('date')
+        ref = datetime.strptime(dt_str, '%Y-%m-%d').date() if dt_str else today
+        s = ref - timedelta(days=ref.weekday())
+        e = s + timedelta(days=6)
+        return s, e
+    elif filter_type == 'month':
+        m_str = args.get('month')
+        if m_str:
+            y, m = map(int, m_str.split('-'))
+            s = date(y, m, 1)
+            if m == 12:
+                e = date(y + 1, 1, 1) - timedelta(days=1)
+            else:
+                e = date(y, m + 1, 1) - timedelta(days=1)
+            return s, e
+        return date(today.year, today.month, 1), today
+    else: # custom
+        s_str = args.get('start_date')
+        e_str = args.get('end_date')
+        s = datetime.strptime(s_str, '%Y-%m-%d').date() if s_str else date(2020, 1, 1)
+        e = datetime.strptime(e_str, '%Y-%m-%d').date() if e_str else today
+        return s, e
+
+
+@app.route('/api/reports/preview', methods=['GET'])
+def preview_report():
+    report_type = request.args.get('report_type', 'installations')
+    filter_type = request.args.get('filter_type', 'all')
+    
+    start_date, end_date = parse_report_dates(filter_type, request.args)
+    
+    if report_type == 'installations':
+        items = Installation.query.filter(Installation.installation_date >= start_date, Installation.installation_date <= end_date).order_by(Installation.installation_date.desc()).all()
+        rows = []
+        for i in items:
+            c = i.customer
+            p = i.product
+            t = i.technician
+            rows.append({
+                'id': i.id,
+                'customer_name': c.customer_name if c else 'N/A',
+                'mobile': c.mobile if c else 'N/A',
+                'product_name': p.product_name if p else 'N/A',
+                'technician_name': t.technician_name if t else 'N/A',
+                'date': i.installation_date.strftime('%Y-%m-%d'),
+                'input_tds': i.input_tds,
+                'output_tds': i.output_tds,
+                'selling_price': float(i.selling_price or 0)
+            })
+        return api_success({'type': 'installations', 'rows': rows, 'total': len(rows)})
+    elif report_type == 'services':
+        items = Service.query.filter(Service.service_date >= start_date, Service.service_date <= end_date).order_by(Service.service_date.desc()).all()
+        rows = []
+        for s in items:
+            c = s.customer
+            t = s.technician
+            rows.append({
+                'id': s.id,
+                'customer_name': c.customer_name if c else 'N/A',
+                'mobile': c.mobile if c else 'N/A',
+                'service_type': s.service_type,
+                'technician_name': t.technician_name if t else 'N/A',
+                'date': s.service_date.strftime('%Y-%m-%d'),
+                'tds_before': s.tds_before,
+                'tds_after': s.tds_after,
+                'total_bill': float(s.total_bill or 0)
+            })
+        return api_success({'type': 'services', 'rows': rows, 'total': len(rows)})
+    else: # master
+        inst_count = Installation.query.filter(Installation.installation_date >= start_date, Installation.installation_date <= end_date).count()
+        serv_count = Service.query.filter(Service.service_date >= start_date, Service.service_date <= end_date).count()
+        rev = sum(float(b.grand_total) for b in Bill.query.filter(Bill.bill_date >= start_date, Bill.bill_date <= end_date).all())
+        rows = [
+            {'category': 'Summary', 'metric': 'Total Installations', 'val': inst_count},
+            {'category': 'Summary', 'metric': 'Total Services Completed', 'val': serv_count},
+            {'category': 'Revenue', 'metric': 'Total Billing Revenue (₹)', 'val': f"₹{rev:,.2f}"}
+        ]
+        return api_success({'type': 'master', 'rows': rows, 'total': len(rows)})
+
+
+# ═══════════════════════════════════════════════════════════════
+# EXCEL REPORTS EXPORT (.XLS)
+# ═══════════════════════════════════════════════════════════════
+@app.route('/api/reports/export', methods=['GET'])
+def export_report():
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    report_type = request.args.get('report_type', 'services') # services, installations, bills, master
+    filter_type = request.args.get('filter_type', 'custom')   # custom, month, week, single_date, all
+    
+    start_date, end_date = parse_report_dates(filter_type, request.args)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"{report_type.capitalize()} Report"
+
+    
+    # Styling
+    header_fill = PatternFill(start_color="1F2937", end_color="1F2937", fill_type="solid")
+    header_font = Font(name="Arial", size=11, bold=True, color="FFFFFF")
+    title_font  = Font(name="Arial", size=14, bold=True, color="1F2937")
+
+    ws.append([f"Aqua Care Water Solutions – {report_type.upper()} REPORT"])
+    ws.cell(row=1, column=1).font = title_font
+    ws.append([f"Filter: {filter_type.upper()} ({start_date.strftime('%d-%b-%Y')} to {end_date.strftime('%d-%b-%Y')})"])
+    ws.append([]) # empty row
+
+    if report_type == 'services':
+        headers = ["ID", "Customer Name", "Mobile", "Service Type", "Technician", "Service Date", "TDS Before", "TDS After", "Service Charge (₹)", "Parts Total (₹)", "Total Bill (₹)"]
+        ws.append(headers)
+        services = Service.query.filter(Service.service_date >= start_date, Service.service_date <= end_date).order_by(Service.service_date.desc()).all()
+        for s in services:
+            c = s.customer
+            t = s.technician
+            ws.append([
+                s.id,
+                c.customer_name if c else 'N/A',
+                c.mobile if c else 'N/A',
+                s.service_type,
+                t.technician_name if t else 'N/A',
+                s.service_date.strftime('%Y-%m-%d'),
+                float(s.tds_before or 0),
+                float(s.tds_after or 0),
+                float(s.service_charge or 0),
+                float(s.parts_total_cost or 0),
+                float(s.total_bill or 0)
+            ])
+    elif report_type == 'installations':
+        headers = ["ID", "Customer Name", "Mobile", "Product Name", "Technician", "Installation Date", "Source Water", "Input TDS", "Output TDS", "Cost Price (₹)", "Selling Price (₹)", "Profit (₹)"]
+        ws.append(headers)
+        insts = Installation.query.filter(Installation.installation_date >= start_date, Installation.installation_date <= end_date).order_by(Installation.installation_date.desc()).all()
+        for i in insts:
+            c = i.customer
+            p = i.product
+            t = i.technician
+            ws.append([
+                i.id,
+                c.customer_name if c else 'N/A',
+                c.mobile if c else 'N/A',
+                p.product_name if p else 'N/A',
+                t.technician_name if t else 'N/A',
+                i.installation_date.strftime('%Y-%m-%d'),
+                i.source_water_type or 'N/A',
+                float(i.input_tds or 0),
+                float(i.output_tds or 0),
+                float(i.cost_price or 0),
+                float(i.selling_price or 0),
+                float(i.profit or 0)
+            ])
+    elif report_type == 'bills':
+        headers = ["Invoice #", "Customer Name", "Mobile", "Bill Date", "Subtotal (₹)", "Service Charge (₹)", "Grand Total (₹)", "Payment Mode", "Payment Status"]
+        ws.append(headers)
+        bills = Bill.query.filter(Bill.bill_date >= start_date, Bill.bill_date <= end_date).order_by(Bill.bill_date.desc()).all()
+        for b in bills:
+            c = b.customer
+            ws.append([
+                b.invoice_number,
+                c.customer_name if c else 'N/A',
+                c.mobile if c else 'N/A',
+                b.bill_date.strftime('%Y-%m-%d'),
+                float(b.subtotal or 0),
+                float(b.service_charge or 0),
+                float(b.grand_total or 0),
+                b.payment_mode,
+                b.payment_status
+            ])
+    else: # master
+        headers = ["Category", "Metric / Detail", "Count / Value"]
+        ws.append(headers)
+        ws.append(["Summary", "Total Services Recorded", Service.query.filter(Service.service_date >= start_date, Service.service_date <= end_date).count()])
+        ws.append(["Summary", "Total Installations", Installation.query.filter(Installation.installation_date >= start_date, Installation.installation_date <= end_date).count()])
+        ws.append(["Summary", "Total Revenue", sum(float(b.grand_total) for b in Bill.query.filter(Bill.bill_date >= start_date, Bill.bill_date <= end_date).all())])
+
+    # Header styling (row 4)
+    header_row_idx = 4
+    for cell in ws[header_row_idx]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    # Auto column width
+    for col in ws.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        col_letter = get_column_letter(col[0].column)
+        ws.column_dimensions[col_letter].width = max(max_len + 4, 12)
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    filename = f"AquaCare_{report_type}_{filter_type}_{start_date.strftime('%Y%m%d')}_to_{end_date.strftime('%Y%m%d')}.xls"
+    return send_file(
+        output,
+        mimetype="application/vnd.ms-excel",
+        as_attachment=True,
+        download_name=filename
+    )
+
+
+
+# ═══════════════════════════════════════════════════════════════
+# FILE UPLOAD – TECHNICIAN PHOTO
+# ═══════════════════════════════════════════════════════════════
+import os, uuid
+from werkzeug.utils import secure_filename
+
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'static', 'uploads')
+ALLOWED_EXTS  = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+def _allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTS
+
+@app.route('/api/upload/technician-photo', methods=['POST'])
+def upload_technician_photo():
+    if 'photo' not in request.files:
+        return api_error('No file part', 400)
+    file = request.files['photo']
+    if file.filename == '':
+        return api_error('No file selected', 400)
+    if not _allowed_file(file.filename):
+        return api_error('File type not allowed. Use PNG, JPG, JPEG, GIF or WEBP.', 400)
+    # Max 5 MB
+    file.seek(0, 2)
+    size = file.tell()
+    file.seek(0)
+    if size > 5 * 1024 * 1024:
+        return api_error('File too large. Max 5 MB.', 400)
+
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    ext      = secure_filename(file.filename).rsplit('.', 1)[1].lower()
+    filename = f"tech_{uuid.uuid4().hex[:12]}.{ext}"
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    file.save(filepath)
+    url = f"/static/uploads/{filename}"
+    return api_success({'url': url}, 'Photo uploaded successfully')
+
+
+# ═══════════════════════════════════════════════════════════════
+# THERMAL RECEIPT DATA ENDPOINTS
+# ═══════════════════════════════════════════════════════════════
+
+def _build_receipt_data(invoice_no, customer, bill_date_str, line_items, bill_type='ESTIMATE'):
+    """Build standardised receipt payload consumed by the frontend print engine."""
+    # Use registered user business info if available, else fall back to defaults
+    business_info = {
+        'name':    'Aqua Care Water Solution',
+        'address': 'Erode - 638001',
+        'mobile':  '99428 33334',
+    }
+    try:
+        user = User.query.first()
+        if user:
+            business_info['name']    = user.business_name or business_info['name']
+            business_info['address'] = user.business_address or business_info['address']
+            business_info['mobile']  = user.mobile or business_info['mobile']
+    except Exception:
+        pass
+
+    # Compute totals
+    total_qty   = sum(item.get('qty') or 0 for item in line_items)
+    grand_total = sum((item.get('qty') or 0) * (item.get('rate') or 0) for item in line_items)
+
+    return {
+        'bill_type':     bill_type,
+        'invoice_no':    invoice_no,
+        'bill_date':     bill_date_str,
+        'business':      business_info,
+        'customer_name': customer.customer_name if customer else 'N/A',
+        'customer_mobile': customer.mobile if customer else '',
+        'line_items':    line_items,
+        'total_qty':     total_qty,
+        'grand_total':   grand_total,
+        'footer':        'Goods once Sold cannot be Taken Back',
+    }
+
+
+@app.route('/api/bills/<int:bid>/receipt', methods=['GET'])
+def bill_receipt(bid):
+    b = Bill.query.get_or_404(bid)
+    customer = b.customer
+    line_items = []
+
+    # If linked to a service, use parts + service charge
+    if b.service_id:
+        svc = Service.query.get(b.service_id)
+        if svc:
+            if float(svc.service_charge or 0) > 0:
+                line_items.append({'description': 'Service Charge', 'qty': 1, 'rate': float(svc.service_charge)})
+            for p in svc.parts:
+                line_items.append({
+                    'description': p.part_name,
+                    'qty':  p.quantity,
+                    'rate': float(p.selling_price),
+                })
+
+    # If linked to an installation, use product as single line item
+    if b.installation_id and not line_items:
+        inst = Installation.query.get(b.installation_id)
+        if inst and inst.product:
+            line_items.append({
+                'description': inst.product.product_name,
+                'qty':  None,
+                'rate': float(inst.selling_price),
+            })
+
+    # Fall back to bill totals if no items resolved
+    if not line_items:
+        if float(b.subtotal or 0) > 0:
+            line_items.append({'description': 'Items', 'qty': 1, 'rate': float(b.subtotal)})
+        if float(b.service_charge or 0) > 0:
+            line_items.append({'description': 'Service Charge', 'qty': 1, 'rate': float(b.service_charge)})
+
+    receipt = _build_receipt_data(
+        invoice_no    = b.invoice_number,
+        customer      = customer,
+        bill_date_str = b.bill_date.strftime('%d/%m/%Y') if b.bill_date else date.today().strftime('%d/%m/%Y'),
+        line_items    = line_items,
+    )
+    return api_success(receipt)
+
+
+@app.route('/api/installations/<int:iid>/receipt', methods=['GET'])
+def installation_receipt(iid):
+    inst = Installation.query.get_or_404(iid)
+    today = date.today()
+    line_items = [{
+        'description': inst.product.product_name if inst.product else 'RO Unit',
+        'qty':  None,
+        'rate': float(inst.selling_price),
+    }]
+    invoice_no = f"INST-{iid}"
+    receipt = _build_receipt_data(
+        invoice_no    = invoice_no,
+        customer      = inst.customer,
+        bill_date_str = inst.installation_date.strftime('%d/%m/%Y') if inst.installation_date else today.strftime('%d/%m/%Y'),
+        line_items    = line_items,
+    )
+    return api_success(receipt)
+
+
+@app.route('/api/services/<int:sid>/receipt', methods=['GET'])
+def service_receipt(sid):
+    svc = Service.query.get_or_404(sid)
+    today = date.today()
+    line_items = []
+    if float(svc.service_charge or 0) > 0:
+        line_items.append({'description': 'Service Charge', 'qty': 1, 'rate': float(svc.service_charge)})
+    for p in svc.parts:
+        line_items.append({
+            'description': p.part_name,
+            'qty':  p.quantity,
+            'rate': float(p.selling_price),
+        })
+    if not line_items:
+        line_items.append({'description': svc.service_type + ' Service', 'qty': 1, 'rate': 0})
+
+    invoice_no = f"SVC-{sid}"
+    receipt = _build_receipt_data(
+        invoice_no    = invoice_no,
+        customer      = svc.customer,
+        bill_date_str = svc.service_date.strftime('%d/%m/%Y') if svc.service_date else today.strftime('%d/%m/%Y'),
+        line_items    = line_items,
+    )
+    return api_success(receipt)
+
+
 # ═══════════════════════════════════════════════════════════════
 # APP ENTRY POINT
 # ═══════════════════════════════════════════════════════════════
+
 def create_app():
     with app.app_context():
         try:
             db.create_all()
+            # Auto-migrate columns for SQLite if upgrading existing database
+            with db.engine.connect() as conn:
+                try:
+                    conn.execute(db.text("ALTER TABLE technicians ADD COLUMN photo_url VARCHAR(500)"))
+                    conn.commit()
+                except Exception:
+                    pass
+                try:
+                    conn.execute(db.text("ALTER TABLE products ADD COLUMN cost_price NUMERIC DEFAULT 0.0"))
+                    conn.commit()
+                except Exception:
+                    pass
+                try:
+                    conn.execute(db.text("ALTER TABLE products ADD COLUMN selling_price NUMERIC DEFAULT 0.0"))
+                    conn.commit()
+                except Exception:
+                    pass
+
             # If in-memory database on Vercel, auto-seed with default admin login and data
             is_sqlite_memory = 'sqlite:///:memory:' in app.config['SQLALCHEMY_DATABASE_URI']
             if is_sqlite_memory and User.query.count() == 0:
@@ -841,8 +1503,9 @@ def create_app():
                 except Exception as seed_err:
                     print(f"Warning: Could not auto-seed database: {seed_err}")
         except Exception as e:
-            print(f"Warning: db.create_all() failed (expected on Vercel if DATABASE_URL is not set/configured): {e}")
+            print(f"Warning: db.create_all() failed: {e}")
     return app
+
 
 
 if __name__ == '__main__':

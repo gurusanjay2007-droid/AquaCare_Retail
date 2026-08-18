@@ -58,26 +58,47 @@ class Technician(db.Model):
     __tablename__ = 'technicians'
 
     id               = db.Column(db.Integer,     primary_key=True, autoincrement=True)
+    tech_id          = db.Column(db.String(50),  unique=True, nullable=True)
+    passcode         = db.Column(db.String(255), nullable=True)
     technician_name  = db.Column(db.String(150), nullable=False)
     mobile           = db.Column(db.String(15),  nullable=False)
     email            = db.Column(db.String(150), nullable=True)
     address          = db.Column(db.Text,        nullable=True)
     status           = db.Column(db.String(20),  nullable=False, default='Active')
+    photo_url        = db.Column(db.String(500), nullable=True)
     created_at       = db.Column(db.DateTime,    default=datetime.utcnow)
 
     installations = db.relationship('Installation', backref='technician', lazy=True)
     services      = db.relationship('Service',      backref='technician', lazy=True)
 
+    def set_passcode(self, raw_passcode):
+        if raw_passcode:
+            self.passcode = generate_password_hash(raw_passcode)
+        else:
+            self.passcode = None
+
+    def check_passcode(self, raw_passcode):
+        if not self.passcode:
+            return False
+        # Support both hashed and legacy plain passcode for easy demo/hub admin setup
+        if self.passcode == raw_passcode:
+            return True
+        return check_password_hash(self.passcode, raw_passcode)
+
     def to_dict(self):
         return {
             'id': self.id,
+            'tech_id': self.tech_id,
+            'passcode': self.passcode,
             'technician_name': self.technician_name,
             'mobile': self.mobile,
             'email': self.email,
             'address': self.address,
             'status': self.status,
+            'photo_url': self.photo_url,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
+
 
 
 # ─────────────────────────────────────────────
@@ -123,15 +144,21 @@ class Customer(db.Model):
 class Product(db.Model):
     __tablename__ = 'products'
 
-    id              = db.Column(db.Integer,     primary_key=True, autoincrement=True)
-    product_name    = db.Column(db.String(200), nullable=False)
-    brand           = db.Column(db.String(100), nullable=False)
-    model_number    = db.Column(db.String(100), nullable=True)
-    serial_number   = db.Column(db.String(100), nullable=True)
-    warranty_months = db.Column(db.Integer,     nullable=False, default=12)
-    created_at      = db.Column(db.DateTime,    default=datetime.utcnow)
+    id              = db.Column(db.Integer,       primary_key=True, autoincrement=True)
+    product_name    = db.Column(db.String(200),   nullable=False)
+    brand           = db.Column(db.String(100),   nullable=False)
+    model_number    = db.Column(db.String(100),   nullable=True)
+    serial_number   = db.Column(db.String(100),   nullable=True)
+    cost_price      = db.Column(db.Numeric(10,2), nullable=False, default=0.00)
+    selling_price   = db.Column(db.Numeric(10,2), nullable=False, default=0.00)
+    warranty_months = db.Column(db.Integer,       nullable=False, default=12)
+    created_at      = db.Column(db.DateTime,      default=datetime.utcnow)
 
     installations   = db.relationship('Installation', backref='product', lazy=True)
+
+    @property
+    def profit_margin(self):
+        return float(self.selling_price or 0) - float(self.cost_price or 0)
 
     def to_dict(self):
         return {
@@ -140,9 +167,13 @@ class Product(db.Model):
             'brand': self.brand,
             'model_number': self.model_number,
             'serial_number': self.serial_number,
+            'cost_price': float(self.cost_price or 0),
+            'selling_price': float(self.selling_price or 0),
+            'profit_margin': self.profit_margin,
             'warranty_months': self.warranty_months,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
+
 
 
 # ─────────────────────────────────────────────

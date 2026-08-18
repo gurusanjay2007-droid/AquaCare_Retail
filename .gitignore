@@ -16,3 +16,8 @@ __pycache__/
 # Local IDE/editor configurations
 .vscode/
 .idea/
+
+# Uploaded test files
+frontend/static/uploads/*
+!frontend/static/uploads/.gitkeep
+!frontend/static/uploads/installations/.gitkeep

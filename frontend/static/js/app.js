@@ -46,6 +46,176 @@ function toast(msg, type = 'info') {
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
+// ═══════════════════════════════════════════════════════════
+// THERMAL PRINT ENGINE
+// ═══════════════════════════════════════════════════════════
+function printThermalBill(receipt) {
+    const fmtAmt = v => parseFloat(v || 0).toFixed(2);
+    const fmtQty = v => (v !== null && v !== undefined) ? String(v) : '';
+
+    // Build items rows HTML
+    let rowsHtml = '';
+    let totalQty = 0;
+    let grandTotal = 0;
+
+    (receipt.line_items || []).forEach(item => {
+        const qty   = (item.qty !== null && item.qty !== undefined) ? item.qty : null;
+        const rate  = parseFloat(item.rate || 0);
+        const total = qty !== null ? qty * rate : rate;
+        grandTotal += total;
+        if (qty !== null) totalQty += qty;
+
+        rowsHtml += `
+        <tr>
+            <td class="td-desc">${item.description}</td>
+            <td class="td-center">${fmtQty(qty)}</td>
+            <td class="td-right">${fmtAmt(rate)}</td>
+            <td class="td-right">${fmtAmt(total)}</td>
+        </tr>`;
+    });
+
+    // Absolute URL for the logo (works from any page)
+    const logoUrl = window.location.origin + '/static/logo.jpg';
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Receipt - ${receipt.invoice_no}</title>
+<style>
+  @page { size: 80mm auto; margin: 2mm 3mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 11px;
+    color: #000;
+    width: 74mm;
+    margin: 0 auto;
+    padding: 2mm 0;
+    background: #fff;
+  }
+  .center   { text-align: center; }
+  .bold     { font-weight: bold; }
+  .hr       { border: none; border-top: 1px dashed #000; margin: 3px 0; }
+  .hr-solid { border: none; border-top: 1px solid #000; margin: 3px 0; }
+
+  .receipt-title { text-align: center; font-size: 15px; font-weight: 900; letter-spacing: 2px; margin-bottom: 4px; }
+  .header-row    { display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 2px; }
+  .biz-block     { flex: 1; }
+  .biz-name      { font-size: 11.5px; font-weight: 900; line-height: 1.4; }
+  .biz-addr      { font-size: 10px; font-weight: bold; line-height: 1.5; }
+  .logo-wrap     { flex-shrink: 0; }
+  .logo-img      { width: 48px; height: 48px; object-fit: contain; display: block; border-radius: 4px; }
+
+  .meta-row { display: flex; justify-content: space-between; font-size: 10.5px; margin: 2px 0; }
+  .to-row   { font-size: 12px; font-weight: bold; margin: 4px 0 2px; }
+  table.items { width: 100%; border-collapse: collapse; margin: 3px 0; font-size: 10.5px; }
+  .items th { text-align: left; font-weight: bold; padding: 1px 0; border-bottom: 1px solid #000; }
+  .items td { padding: 2px 0; vertical-align: top; }
+  .td-desc   { width: 42%; word-break: break-word; }
+  .td-center { width: 12%; text-align: center; }
+  .td-right  { width: 23%; text-align: right; }
+  .total-row td { font-weight: bold; border-top: 1px solid #000; padding-top: 3px; }
+  .net-row  { display: flex; justify-content: space-between; font-weight: bold; font-size: 12px; margin: 4px 0; }
+  .footer   { text-align: center; font-size: 10px; font-weight: bold; margin-top: 6px; line-height: 1.6; }
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .no-print { display: none; }
+  }
+  .print-btn {
+    display: block; width: 100%; margin: 8px 0 0; padding: 6px;
+    background: #000; color: #fff; border: none; font-size: 12px;
+    cursor: pointer; font-family: inherit;
+  }
+</style>
+</head>
+<body>
+
+<div class="receipt-title">${receipt.bill_type || 'ESTIMATE'}</div>
+
+<div class="header-row">
+  <div class="biz-block">
+    <div class="biz-name">AQUA CARE WATER SOLUTION</div>
+    <div class="biz-addr">${receipt.business.address}</div>
+    <div class="biz-addr">${receipt.business.mobile}</div>
+  </div>
+  <div class="logo-wrap">
+    <img class="logo-img" src="${logoUrl}" alt="Aqua Care Logo">
+  </div>
+</div>
+
+<hr class="hr-solid">
+<div class="meta-row">
+  <span>No. : <strong>${receipt.invoice_no}</strong></span>
+  <span>Date : <strong>${receipt.bill_date}</strong></span>
+</div>
+<hr class="hr-solid">
+
+<div class="to-row">To. ${receipt.customer_name}</div>
+
+<hr class="hr">
+
+<table class="items">
+  <thead>
+    <tr>
+      <th class="td-desc">Description of</th>
+      <th class="td-center">QTY.</th>
+      <th class="td-right">Rate</th>
+      <th class="td-right">Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${rowsHtml}
+    <tr class="total-row">
+      <td class="td-desc bold">Total Amount</td>
+      <td class="td-center bold">${totalQty || ''}</td>
+      <td class="td-right"></td>
+      <td class="td-right bold">${fmtAmt(grandTotal)}</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr class="hr-solid">
+<div class="net-row">
+  <span>Net Amount Rs.</span>
+  <span>${fmtAmt(grandTotal)}</span>
+</div>
+<hr class="hr-solid">
+
+<div class="footer">Goods once Sold cannot be<br>Taken Back</div>
+
+<button class="print-btn no-print" onclick="window.print()">Print Bill</button>
+
+</body>
+</html>`;
+
+    const win = window.open('', '_blank', 'width=390,height=660,scrollbars=yes');
+    if (!win) { toast('Pop-up blocked! Please allow pop-ups and try again.', 'error'); return; }
+    win.document.write(html);
+    win.document.close();
+    win.addEventListener('load', () => { win.focus(); win.print(); });
+}
+
+async function printBillById(billId) {
+    const res = await API.get(`/api/bills/${billId}/receipt`);
+    if (res.success) printThermalBill(res.data);
+    else toast('Could not load receipt data', 'error');
+}
+
+async function printInstallationBill(installId) {
+    const res = await API.get(`/api/installations/${installId}/receipt`);
+    if (res.success) printThermalBill(res.data);
+    else toast('Could not load receipt data', 'error');
+}
+
+async function printServiceBill(serviceId) {
+    const res = await API.get(`/api/services/${serviceId}/receipt`);
+    if (res.success) printThermalBill(res.data);
+    else toast('Could not load receipt data', 'error');
+}
+
+
 document.querySelectorAll('[data-modal]').forEach(btn => {
     btn.addEventListener('click', () => closeModal(btn.dataset.modal));
 });
@@ -89,6 +259,53 @@ const App = {
         products: 'Products', installations: 'Installations', schedules: 'Service Schedule',
         services: 'Services', bills: 'Bills & Invoices', inventory: 'Inventory', sms: 'SMS Logs'
     },
+
+    // ── Technician Photo Helpers ─────────────────────────────
+    _setTechPhotoPreview(url) {
+        document.getElementById('tf-photo-url').value = url;
+        document.getElementById('tf-photo-preview').src = url;
+        document.getElementById('tf-photo-preview-wrap').style.display = 'flex';
+        document.getElementById('tf-photo-placeholder').style.display = 'none';
+        document.getElementById('tf-photo-dropzone').style.borderColor = 'var(--accent-cyan)';
+    },
+    clearTechPhoto() {
+        document.getElementById('tf-photo-url').value = '';
+        document.getElementById('tf-photo-preview').src = '';
+        document.getElementById('tf-photo-preview-wrap').style.display = 'none';
+        document.getElementById('tf-photo-placeholder').style.display = 'block';
+        document.getElementById('tf-photo-dropzone').style.borderColor = 'var(--border-hover)';
+        const inp = document.getElementById('tf-photo-input');
+        if (inp) inp.value = '';
+    },
+    async _uploadTechPhoto(file) {
+        const fd = new FormData();
+        fd.append('photo', file);
+        try {
+            const res = await fetch('/api/upload/technician-photo', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (data.success) {
+                this._setTechPhotoPreview(data.data.url);
+                toast('Photo uploaded ✅', 'success');
+            } else {
+                toast(data.message || 'Upload failed', 'error');
+            }
+        } catch (err) {
+            toast('Upload failed: ' + err.message, 'error');
+        }
+    },
+    handleTechPhotoSelect(event) {
+        const file = event.target.files[0];
+        if (file) this._uploadTechPhoto(file);
+    },
+    handleTechPhotoDrop(event) {
+        event.preventDefault();
+        document.getElementById('tf-photo-dropzone').style.borderColor = 'var(--border-hover)';
+        const file = event.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) this._uploadTechPhoto(file);
+        else toast('Please drop an image file', 'error');
+    },
+    // ────────────────────────────────────────────────────────
+
     navigate(page) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -148,7 +365,19 @@ updateDate();
 // ═══════════════════════════════════════════════════════════
 const loginForm = document.getElementById('login-form');
 const signupForm = document.getElementById('signup-form');
+const techLoginForm = document.getElementById('tech-login-form');
 const loginHint = document.getElementById('login-hint-text');
+
+// Login Role Tab Switcher
+App.switchLoginTab = function(role) {
+    const isHub = role === 'hub';
+    document.getElementById('tab-hub').classList.toggle('active', isHub);
+    document.getElementById('tab-tech').classList.toggle('active', !isHub);
+    loginForm.classList.toggle('hidden', !isHub);
+    signupForm.classList.add('hidden');
+    techLoginForm.classList.toggle('hidden', isHub);
+    if (loginHint) loginHint.classList.toggle('hidden', !isHub);
+};
 
 document.getElementById('btn-to-signup').addEventListener('click', e => {
     e.preventDefault();
@@ -162,6 +391,26 @@ document.getElementById('btn-to-login').addEventListener('click', e => {
     signupForm.classList.add('hidden');
     loginForm.classList.remove('hidden');
     loginHint.classList.remove('hidden');
+});
+
+// Technician Login Submission
+techLoginForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = document.getElementById('tech-login-btn');
+    btn.innerHTML = '<span>Logging in…</span>';
+    btn.disabled = true;
+    const res = await API.post('/api/auth/tech-login', {
+        tech_id:  document.getElementById('tech-id-input').value.trim(),
+        passcode: document.getElementById('tech-passcode-input').value
+    });
+    btn.innerHTML = '<span>🔧 Technician Login</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+    btn.disabled = false;
+    if (res.success) {
+        showTechPortal(res.data);
+        toast('Welcome, ' + res.data.technician_name + '! Ready to work 🔧', 'success');
+    } else {
+        toast(res.message || 'Login failed', 'error');
+    }
 });
 
 loginForm.addEventListener('submit', async e => {
@@ -209,11 +458,35 @@ signupForm.addEventListener('submit', async e => {
 
 function showApp(user) {
     document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('tech-portal').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
     document.getElementById('sidebar-name').textContent = user.owner_name || 'Admin';
     document.getElementById('sidebar-avatar').textContent = (user.owner_name || 'A')[0].toUpperCase();
     document.getElementById('dash-user-name').textContent = user.owner_name.split(' ')[0];
     App.navigate('dashboard');
+}
+
+function showTechPortal(tech) {
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app').classList.add('hidden');
+    const portal = document.getElementById('tech-portal');
+    portal.classList.remove('hidden');
+    document.getElementById('tech-portal-name').textContent = tech.technician_name;
+    document.getElementById('tech-portal-id').textContent = tech.tech_id || '';
+    document.getElementById('tech-portal-status').textContent = tech.status || 'Active';
+    // Show photo in header if available
+    const avatarImg  = document.getElementById('tech-portal-avatar-img');
+    const avatarIcon = document.getElementById('tech-portal-avatar-icon');
+    if (tech.photo_url) {
+        avatarImg.src = tech.photo_url;
+        avatarImg.style.display = 'block';
+        avatarIcon.style.display = 'none';
+    } else {
+        avatarImg.style.display = 'none';
+        avatarIcon.style.display = 'inline';
+    }
+    // Initialize tech portal data
+    App.techPortalInit();
 }
 
 document.getElementById('logout-btn').addEventListener('click', async () => {
@@ -223,10 +496,26 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
     toast('Signed out successfully', 'info');
 });
 
+App.techLogout = async function() {
+    await API.post('/api/auth/logout', {});
+    document.getElementById('tech-portal').classList.add('hidden');
+    document.getElementById('login-screen').classList.remove('hidden');
+    // Reset tech login form
+    techLoginForm.reset();
+    App.switchLoginTab('tech');
+    toast('Signed out successfully', 'info');
+};
+
 // Check if already logged in
 (async () => {
     const res = await API.get('/api/auth/me');
-    if (res.success) showApp(res.data);
+    if (res.success) {
+        if (res.data.role === 'technician') {
+            showTechPortal(res.data);
+        } else {
+            showApp(res.data);
+        }
+    }
 })();
 
 // ═══════════════════════════════════════════════════════════
@@ -539,9 +828,13 @@ async function loadTechnicians() {
     const res = await API.get('/api/technicians');
     if (!res.success) return;
     const grid = document.getElementById('technician-grid');
-    grid.innerHTML = res.data.map(t => `
+    grid.innerHTML = res.data.map(t => {
+        const avatarHtml = t.photo_url
+            ? `<img src="${t.photo_url}" alt="${t.technician_name}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid var(--accent-cyan);margin-bottom:0.5rem;">`
+            : `<div class="tech-avatar">🔧</div>`;
+        return `
         <div class="tech-card">
-            <div class="tech-avatar">🔧</div>
+            ${avatarHtml}
             <div class="tech-name">${t.technician_name}</div>
             <div class="tech-meta">📞 ${t.mobile}</div>
             ${t.email ? `<div class="tech-meta">✉️ ${t.email}</div>` : ''}
@@ -551,14 +844,15 @@ async function loadTechnicians() {
                 <button class="btn btn-sm btn-outline" onclick="editTechnician(${t.id})">✏️ Edit</button>
                 <button class="btn btn-sm btn-danger" onclick="deleteTechnician(${t.id}, '${t.technician_name}')">Delete</button>
             </div>
-        </div>
-    `).join('') || '<p style="color:var(--text-muted)">No technicians found</p>';
+        </div>`;
+    }).join('') || '<p style="color:var(--text-muted)">No technicians found</p>';
 }
 
 document.getElementById('btn-add-technician').addEventListener('click', () => {
     document.getElementById('technician-form').reset();
     document.getElementById('tf-id').value = '';
     document.getElementById('technician-modal-title').textContent = 'Add Technician';
+    App.clearTechPhoto();
     openModal('modal-technician');
 });
 
@@ -571,6 +865,7 @@ document.getElementById('technician-form').addEventListener('submit', async e =>
         email:           document.getElementById('tf-email').value,
         address:         document.getElementById('tf-address').value,
         status:          document.getElementById('tf-status').value,
+        photo_url:       document.getElementById('tf-photo-url').value || null,
     };
     const res = id
         ? await API.put(`/api/technicians/${id}`, body)
@@ -594,6 +889,12 @@ function editTechnician(id) {
         document.getElementById('tf-address').value = t.address || '';
         document.getElementById('tf-status').value  = t.status;
         document.getElementById('technician-modal-title').textContent = 'Edit Technician';
+        // Restore photo preview if existing
+        if (t.photo_url) {
+            App._setTechPhotoPreview(t.photo_url);
+        } else {
+            App.clearTechPhoto();
+        }
         openModal('modal-technician');
     });
 }
@@ -693,6 +994,7 @@ async function loadInstallations(page = 1) {
             <td>
                 <div class="action-btns">
                     <button class="btn-icon" title="View" onclick="viewInstallation(${inst.id})">👁</button>
+                    <button class="btn-icon" title="Print Bill" onclick="printInstallationBill(${inst.id})" style="color:var(--accent-cyan)">🖨️</button>
                 </div>
             </td>
         </tr>
@@ -832,6 +1134,7 @@ async function loadServices(page = 1) {
             <td>
                 <div class="action-btns">
                     <button class="btn-icon" onclick="viewService(${s.id})">👁</button>
+                    <button class="btn-icon" title="Print Bill" onclick="printServiceBill(${s.id})" style="color:var(--accent-cyan)">🖨️</button>
                 </div>
             </td>
         </tr>
@@ -938,6 +1241,7 @@ async function loadBills(page = 1) {
             <td>
                 <div class="action-btns">
                     ${b.payment_status === 'Unpaid' ? `<button class="btn-icon" title="Mark Paid" onclick="markBillPaid(${b.id})">✓</button>` : ''}
+                    <button class="btn-icon" title="Print Bill" onclick="printBillById(${b.id})" style="color:var(--accent-cyan)">🖨️</button>
                 </div>
             </td>
         </tr>
@@ -1162,3 +1466,340 @@ function debounce(fn, delay) {
 // INIT
 // ═══════════════════════════════════════════════════════════
 refreshDropdowns();
+
+// ═══════════════════════════════════════════════════════════
+// TECHNICIAN PORTAL LOGIC
+// ═══════════════════════════════════════════════════════════
+
+App.switchTechTab = function(tab) {
+    document.querySelectorAll('.tech-tab').forEach(b => b.classList.toggle('active', b.dataset.techTab === tab));
+    document.querySelectorAll('.tech-tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tech-tab-' + tab));
+    if (tab === 'jobs') App.techLoadJobs();
+};
+
+App.techPortalInit = async function() {
+    const pr = await API.get('/api/products');
+    if (pr.success) {
+        const sel = document.getElementById('ti-product');
+        if (sel) sel.innerHTML = '<option value="">— Select Unit —</option>' +
+            pr.data.map(p => `<option value="${p.id}">${p.product_name} (${p.brand})</option>`).join('');
+    }
+    const cr = await API.get('/api/customers?limit=500');
+    if (cr.success) {
+        const custs = cr.data.items || [];
+        const custOpts = '<option value="">— New Customer —</option>' +
+            custs.map(c => `<option value="${c.id}" data-name="${c.customer_name}" data-mobile="${c.mobile}" data-address="${(c.address||'').replace(/"/g,'&quot;')}" data-city="${c.city||''}">${c.customer_name} (${c.mobile})</option>`).join('');
+        const sel1 = document.getElementById('ti-customer-select');
+        if (sel1) sel1.innerHTML = custOpts;
+
+        const svcOpts = '<option value="">— Select Customer —</option>' +
+            custs.map(c => `<option value="${c.id}">${c.customer_name} (${c.mobile})</option>`).join('');
+        const sel2 = document.getElementById('ts-customer');
+        if (sel2) sel2.innerHTML = svcOpts;
+    }
+    
+    // Fetch spares (inventory) added by the Hub
+    const invRes = await API.get('/api/inventory');
+    if (invRes.success) {
+        App.techInventory = invRes.data || [];
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const d1 = document.getElementById('ti-install-date');
+    if (d1) d1.value = today;
+    const d2 = document.getElementById('ts-service-date');
+    if (d2) d2.value = today;
+};
+
+App.techFillCustomer = function(cid) {
+    const sel = document.getElementById('ti-customer-select');
+    const opt = sel.options[sel.selectedIndex];
+    if (cid && opt) {
+        document.getElementById('ti-customer-name').value = opt.dataset.name || '';
+        document.getElementById('ti-mobile').value = opt.dataset.mobile || '';
+        document.getElementById('ti-address').value = opt.dataset.address || '';
+        document.getElementById('ti-city').value = opt.dataset.city || '';
+    } else {
+        ['ti-customer-name','ti-mobile','ti-address','ti-city'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+    }
+};
+
+App.techLoadCustomerInstalls = async function(cid) {
+    const sel = document.getElementById('ts-installation');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">— Loading... —</option>';
+    if (!cid) { sel.innerHTML = '<option value="">— Select Installation —</option>'; return; }
+    const res = await API.get('/api/installations?limit=100');
+    if (res.success) {
+        const custInst = (res.data.items || []).filter(i => String(i.customer_id) === String(cid));
+        if (custInst.length) {
+            sel.innerHTML = '<option value="">— Select Installation —</option>' +
+                custInst.map(i => {
+                    const d = i.installation_date ? new Date(i.installation_date).toLocaleDateString('en-IN') : '';
+                    return `<option value="${i.id}">${i.product_name} (${d})</option>`;
+                }).join('');
+        } else {
+            sel.innerHTML = '<option value="">No installations found</option>';
+        }
+    }
+};
+
+App.techPreviewPhoto = function(input) {
+    const preview = document.getElementById('ti-photo-preview');
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        preview.innerHTML = `<img src="${ev.target.result}" alt="Preview"><button type="button" class="photo-preview-remove" onclick="App.techRemovePhoto()">✕</button>`;
+        preview.classList.remove('hidden');
+        document.getElementById('photo-upload-zone').style.display = 'none';
+    };
+    reader.readAsDataURL(input.files[0]);
+};
+
+App.techRemovePhoto = function() {
+    const preview = document.getElementById('ti-photo-preview');
+    preview.classList.add('hidden');
+    preview.innerHTML = '';
+    document.getElementById('ti-photo-url').value = '';
+    document.getElementById('ti-photo-input').value = '';
+    document.getElementById('photo-upload-zone').style.display = '';
+};
+
+App.techSubmitInstall = async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('tech-install-submit-btn');
+    btn.innerHTML = '<span>Uploading...</span>'; btn.disabled = true;
+
+    let photoUrl = '';
+    const photoInput = document.getElementById('ti-photo-input');
+    if (photoInput.files && photoInput.files[0]) {
+        const fd = new FormData();
+        fd.append('photo', photoInput.files[0]);
+        try {
+            const upRes = await fetch('/api/upload', { method: 'POST', credentials: 'include', body: fd });
+            const upData = await upRes.json();
+            if (upData.success) photoUrl = upData.data.photo_url;
+            else { toast('Photo upload failed: ' + upData.message, 'error'); btn.innerHTML = '<span>✅ Submit Installation</span>'; btn.disabled = false; return; }
+        } catch(err) { toast('Photo upload error', 'error'); }
+    }
+
+    btn.innerHTML = '<span>Saving...</span>';
+    const cidSel = document.getElementById('ti-customer-select').value;
+    const body = {
+        customer_name: document.getElementById('ti-customer-name').value,
+        mobile:        document.getElementById('ti-mobile').value,
+        address:       document.getElementById('ti-address').value,
+        city:          document.getElementById('ti-city').value || 'Hyderabad',
+        product_id:    parseInt(document.getElementById('ti-product').value),
+        installation_date: document.getElementById('ti-install-date').value,
+        service_interval_months: parseInt(document.getElementById('ti-warranty').value) || 12,
+        source_water_type: document.getElementById('ti-source-water').value,
+        input_tds:     parseFloat(document.getElementById('ti-input-tds').value) || null,
+        output_tds:    parseFloat(document.getElementById('ti-output-tds').value) || null,
+        installation_photo: photoUrl || null,
+        remarks:       document.getElementById('ti-remarks').value,
+    };
+    if (cidSel) body.customer_id = parseInt(cidSel);
+
+    const res = await API.post('/api/installations', body);
+    btn.innerHTML = '<span>✅ Submit Installation</span>'; btn.disabled = false;
+    if (res.success) {
+        toast('Installation recorded successfully! 🛠️', 'success');
+        App.techResetInstallForm();
+        // Show print success modal
+        App._lastInstallId = res.data && res.data.id ? res.data.id : null;
+        if (App._lastInstallId) {
+            document.getElementById('print-success-type').textContent = 'Installation';
+            document.getElementById('print-success-customer').textContent = res.data.customer_name || body.customer_name || '';
+            document.getElementById('print-success-amount').textContent =
+                '₹' + parseFloat(res.data.selling_price || body.selling_price || 0).toLocaleString('en-IN');
+            document.getElementById('print-success-btn').onclick = () => printInstallationBill(App._lastInstallId);
+            openModal('modal-print-success');
+        } else {
+            App.switchTechTab('jobs');
+        }
+    } else {
+        toast(res.message || 'Failed to save installation', 'error');
+    }
+};
+
+App.techResetInstallForm = function() {
+    document.getElementById('tech-install-form').reset();
+    document.getElementById('ti-install-date').value = new Date().toISOString().split('T')[0];
+    App.techRemovePhoto();
+};
+
+let _techPartCount = 0;
+App.techAddPart = function() {
+    _techPartCount++;
+    const id = _techPartCount;
+    const row = document.createElement('div');
+    row.className = 'tech-part-row';
+    row.id = 'tech-part-' + id;
+
+    // Load available inventory spares added by the hub
+    const inventory = App.techInventory || [];
+    let optionsHtml = '<option value="">— Select Spare Part —</option>';
+    inventory.forEach(function(item) {
+        const nameEscaped = item.part_name.replace(/"/g, '&quot;');
+        optionsHtml += `<option value="${nameEscaped}" data-cost="${item.purchase_price}" data-sell="${item.selling_price}">${item.part_name} (₹${item.selling_price})</option>`;
+    });
+
+    row.innerHTML =
+        `<select data-field="name" onchange="App.techOnSelectPart(${id})" style="flex: 2; min-width: 150px; padding: 0.5rem; border-radius: var(--radius-sm); border: 1px solid var(--border); font-family: inherit; font-size: 0.9rem;">${optionsHtml}</select>` +
+        '<input type="number" placeholder="Qty" min="1" value="1" data-field="qty" oninput="App.techCalcServiceTotal()" style="width: 70px;">' +
+        '<input type="number" placeholder="Cost ₹" min="0" step="0.01" value="0" data-field="cost" readonly style="width: 90px; background: rgba(0,0,0,0.05); color: var(--text-muted); cursor: not-allowed;">' +
+        '<input type="number" placeholder="Sell ₹" min="0" step="0.01" value="0" data-field="sell" oninput="App.techCalcServiceTotal()" style="width: 100px;">' +
+        `<button type="button" class="tech-part-remove" onclick="App.techRemovePart(${id})">✕</button>`;
+    document.getElementById('tech-parts-list').appendChild(row);
+};
+
+App.techOnSelectPart = function(rowId) {
+    const row = document.getElementById('tech-part-' + rowId);
+    if (!row) return;
+    const select = row.querySelector('[data-field="name"]');
+    const selectedOption = select.options[select.selectedIndex];
+    
+    const costInput = row.querySelector('[data-field="cost"]');
+    const sellInput = row.querySelector('[data-field="sell"]');
+    
+    if (selectedOption && selectedOption.value !== "") {
+        costInput.value = selectedOption.dataset.cost || 0;
+        sellInput.value = selectedOption.dataset.sell || 0;
+    } else {
+        costInput.value = 0;
+        sellInput.value = 0;
+    }
+    App.techCalcServiceTotal();
+};
+
+App.techRemovePart = function(id) {
+    const row = document.getElementById('tech-part-' + id);
+    if (row) row.remove();
+    App.techCalcServiceTotal();
+};
+
+App.techCalcServiceTotal = function() {
+    const charge = parseFloat(document.getElementById('ts-service-charge').value) || 0;
+    let partsTotal = 0;
+    document.querySelectorAll('.tech-part-row').forEach(function(row) {
+        const qty  = parseFloat(row.querySelector('[data-field="qty"]').value) || 0;
+        const sell = parseFloat(row.querySelector('[data-field="sell"]').value) || 0;
+        partsTotal += qty * sell;
+    });
+    const grand = charge + partsTotal;
+    const fmtR = function(v) { return '₹' + v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+    document.getElementById('ts-total-charge').textContent = fmtR(charge);
+    document.getElementById('ts-total-parts').textContent  = fmtR(partsTotal);
+    document.getElementById('ts-grand-total').textContent  = fmtR(grand);
+};
+
+App.techSubmitService = async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('tech-service-submit-btn');
+    btn.innerHTML = '<span>Saving...</span>'; btn.disabled = true;
+
+    const parts = [];
+    document.querySelectorAll('.tech-part-row').forEach(function(row) {
+        const name = row.querySelector('[data-field="name"]').value.trim();
+        if (name) {
+            parts.push({
+                part_name:     name,
+                quantity:      parseInt(row.querySelector('[data-field="qty"]').value) || 1,
+                cost_price:    parseFloat(row.querySelector('[data-field="cost"]').value) || 0,
+                selling_price: parseFloat(row.querySelector('[data-field="sell"]').value) || 0,
+            });
+        }
+    });
+
+    const body = {
+        customer_id:     parseInt(document.getElementById('ts-customer').value) || null,
+        installation_id: parseInt(document.getElementById('ts-installation').value) || null,
+        service_type:    document.getElementById('ts-service-type').value,
+        service_date:    document.getElementById('ts-service-date').value,
+        service_charge:  parseFloat(document.getElementById('ts-service-charge').value) || 0,
+        tds_before:      parseFloat(document.getElementById('ts-tds-before').value) || null,
+        tds_after:       parseFloat(document.getElementById('ts-tds-after').value) || null,
+        remarks:         document.getElementById('ts-remarks').value,
+        parts:           parts,
+    };
+
+    const res = await API.post('/api/services', body);
+    btn.innerHTML = '<span>✅ Submit Service Record</span>'; btn.disabled = false;
+    if (res.success) {
+        toast('Service recorded successfully! ⚙️', 'success');
+        App.techResetServiceForm();
+        // Show print success modal
+        App._lastServiceId = res.data && res.data.id ? res.data.id : null;
+        if (App._lastServiceId) {
+            const totalBill = parseFloat(res.data.total_bill || 0);
+            document.getElementById('print-success-type').textContent = 'Service';
+            document.getElementById('print-success-customer').textContent = res.data.customer_name || '';
+            document.getElementById('print-success-amount').textContent = '₹' + totalBill.toLocaleString('en-IN');
+            document.getElementById('print-success-btn').onclick = () => printServiceBill(App._lastServiceId);
+            openModal('modal-print-success');
+        } else {
+            App.switchTechTab('jobs');
+        }
+    } else {
+        toast(res.message || 'Failed to save service', 'error');
+    }
+};
+
+App.techResetServiceForm = function() {
+    document.getElementById('tech-service-form').reset();
+    document.getElementById('tech-parts-list').innerHTML = '';
+    _techPartCount = 0;
+    App.techCalcServiceTotal();
+    document.getElementById('ts-service-date').value = new Date().toISOString().split('T')[0];
+};
+
+App.techLoadJobs = async function() {
+    const iRes = await API.get('/api/installations?limit=20');
+    const sRes = await API.get('/api/services?limit=20');
+
+    const iContainer = document.getElementById('tech-jobs-installs');
+    const sContainer = document.getElementById('tech-jobs-services');
+
+    if (iRes.success) {
+        const items = iRes.data.items || [];
+        if (items.length) {
+            iContainer.innerHTML = items.map(function(i) {
+                const d = i.installation_date ? new Date(i.installation_date).toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}) : '';
+                const photo = i.installation_photo
+                    ? '<img src="' + i.installation_photo + '" style="width:100%;max-height:100px;object-fit:cover;border-radius:8px;margin-top:0.5rem;cursor:pointer" onclick="App.openLightbox(\'' + i.installation_photo + '\',\'Installation - ' + i.customer_name + '\')">'
+                    : '';
+                return '<div class="tech-job-card"><div class="tech-job-top"><div class="tech-job-name">' + i.customer_name + '</div><div class="tech-job-date">' + d + '</div></div><div class="tech-job-detail">' + i.product_name + '</div>' + photo + '<span class="tech-job-type">🛠️ Installation</span></div>';
+            }).join('');
+        } else {
+            iContainer.innerHTML = '<div class="tech-empty-state">No installations found</div>';
+        }
+    }
+
+    if (sRes.success) {
+        const items = sRes.data.items || [];
+        if (items.length) {
+            sContainer.innerHTML = items.map(function(s) {
+                const d = s.service_date ? new Date(s.service_date).toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}) : '';
+                const amt = parseFloat(s.total_bill || 0).toLocaleString('en-IN');
+                return '<div class="tech-job-card"><div class="tech-job-top"><div class="tech-job-name">' + s.customer_name + '</div><div class="tech-job-date">' + d + '</div></div><div class="tech-job-detail">₹' + amt + '</div><span class="tech-job-type">⚙️ ' + s.service_type + '</span></div>';
+            }).join('');
+        } else {
+            sContainer.innerHTML = '<div class="tech-empty-state">No services found</div>';
+        }
+    }
+};
+
+App.openLightbox = function(src, caption) {
+    document.getElementById('lightbox-img').src = src;
+    document.getElementById('lightbox-caption').textContent = caption || '';
+    document.getElementById('photo-lightbox').classList.remove('hidden');
+};
+
+App.closeLightbox = function() {
+    document.getElementById('photo-lightbox').classList.add('hidden');
+    document.getElementById('lightbox-img').src = '';
+};

@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PureFlow Service Hub – RO Sales & Service Management</title>
-    <meta name="description" content="PureFlow Service Hub – Complete RO Water Purifier Sales, Installation & Service Management System for modern service businesses.">
+    <title>AQUA CARE WATER SOLUTIONS – RO Sales & Service Management</title>
+    <meta name="description" content="AQUA CARE WATER SOLUTIONS – Complete RO Water Purifier Sales, Installation & Service Management System for modern service businesses.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -24,11 +24,24 @@
     </div>
     <div class="login-card glass">
         <div class="login-logo">
-            <div class="logo-icon">💧</div>
-            <h1 class="login-title">PureFlow</h1>
-            <p class="login-subtitle">Service Hub</p>
+            <div class="login-logo-container">
+                <img src="/static/logo.jpg" class="login-logo-img" alt="Aqua Care Logo">
+            </div>
+            <h1 class="login-title">AQUA CARE</h1>
+            <p class="login-subtitle">WATER SOLUTIONS</p>
         </div>
-        <p class="login-tagline">RO Sales & Service Management System</p>
+        <p class="login-tagline">RO Sales &amp; Service Management System</p>
+
+        <!-- ROLE TAB SWITCHER -->
+        <div class="login-role-tabs">
+            <button class="login-role-tab active" id="tab-hub" onclick="App.switchLoginTab('hub')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-right: 4px;"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="9" y1="22" x2="9" y2="16"></line><line x1="15" y1="22" x2="15" y2="16"></line><line x1="9" y1="16" x2="15" y2="16"></line><path d="M9 6h6"></path><path d="M9 10h6"></path></svg> Hub Admin
+            </button>
+            <button class="login-role-tab" id="tab-tech" onclick="App.switchLoginTab('tech')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-right: 4px;"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg> Technician
+            </button>
+        </div>
+
         <!-- SIGN IN FORM -->
         <form id="login-form" class="login-form">
             <div class="form-group">
@@ -46,12 +59,29 @@
             <p class="auth-toggle">Don't have a business account? <a href="#" id="btn-to-signup">Sign Up</a></p>
         </form>
 
+        <!-- TECHNICIAN LOGIN FORM -->
+        <form id="tech-login-form" class="login-form hidden">
+            <div class="form-group">
+                <label for="tech-id-input">Technician ID</label>
+                <input type="text" id="tech-id-input" placeholder="e.g. TECH101" required autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label for="tech-passcode-input">Passcode</label>
+                <input type="password" id="tech-passcode-input" placeholder="••••••" required>
+            </div>
+            <button type="submit" id="tech-login-btn" class="btn btn-tech btn-full">
+                <span>🔧 Technician Login</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+            <p class="login-hint" style="margin-top:0.75rem; text-align:center;">Demo: TECH101 / 123456</p>
+        </form>
+
         <!-- SIGN UP FORM -->
         <form id="signup-form" class="login-form hidden">
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
                 <div class="form-group">
                     <label for="signup-business-name">Business Name</label>
-                    <input type="text" id="signup-business-name" placeholder="PureFlow Solutions" required>
+                    <input type="text" id="signup-business-name" placeholder="Aqua Care Solutions" required>
                 </div>
                 <div class="form-group">
                     <label for="signup-owner-name">Owner Name</label>
@@ -101,10 +131,10 @@
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="sidebar-logo">
-                <span class="logo-drop">💧</span>
+                <img src="/static/logo.jpg" class="app-logo-img" alt="Aqua Care Logo">
                 <div>
-                    <div class="sidebar-brand">PureFlow</div>
-                    <div class="sidebar-brand-sub">Service Hub</div>
+                    <div class="sidebar-brand" style="font-size: 1.05rem; white-space: nowrap;">AQUA CARE</div>
+                    <div class="sidebar-brand-sub">WATER SOLUTIONS</div>
                 </div>
             </div>
             <button class="sidebar-toggle-close" id="sidebar-close">✕</button>
@@ -113,42 +143,57 @@
         <nav class="sidebar-nav">
             <div class="nav-section-label">OVERVIEW</div>
             <a href="#" class="nav-item active" data-page="dashboard" id="nav-dashboard">
-                <span class="nav-icon">⬛</span><span class="nav-label">Dashboard</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+                <span class="nav-label">Dashboard</span>
             </a>
 
             <div class="nav-section-label">MANAGEMENT</div>
             <a href="#" class="nav-item" data-page="customers" id="nav-customers">
-                <span class="nav-icon">👤</span><span class="nav-label">Customers</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                <span class="nav-label">Customers</span>
             </a>
             <a href="#" class="nav-item" data-page="technicians" id="nav-technicians">
-                <span class="nav-icon">🔧</span><span class="nav-label">Technicians</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6"></path><path d="M22 11h-6"></path></svg>
+                <span class="nav-label">Technicians</span>
             </a>
             <a href="#" class="nav-item" data-page="products" id="nav-products">
-                <span class="nav-icon">📦</span><span class="nav-label">Products</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><polygon points="12 22.08 12 12 3 6.92 3 17.08 12 22.08"></polygon><polygon points="12 12 21 6.92 21 17.08 12 22.08"></polygon><polygon points="12 2 21 6.92 12 12 3 6.92 12 2"></polygon><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                <span class="nav-label">Products</span>
             </a>
 
             <div class="nav-section-label">OPERATIONS</div>
             <a href="#" class="nav-item" data-page="installations" id="nav-installations">
-                <span class="nav-icon">🛠️</span><span class="nav-label">Installations</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                <span class="nav-label">Installations</span>
             </a>
             <a href="#" class="nav-item" data-page="schedules" id="nav-schedules">
-                <span class="nav-icon">📅</span><span class="nav-label">Service Schedule</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                <span class="nav-label">Service Schedule</span>
                 <span class="nav-badge" id="overdue-badge" style="display:none">!</span>
             </a>
             <a href="#" class="nav-item" data-page="services" id="nav-services">
-                <span class="nav-icon">⚙️</span><span class="nav-label">Services</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                <span class="nav-label">Services</span>
             </a>
 
-            <div class="nav-section-label">FINANCE</div>
+            <div class="nav-section-label">FINANCE & REPORTS</div>
             <a href="#" class="nav-item" data-page="bills" id="nav-bills">
-                <span class="nav-icon">🧾</span><span class="nav-label">Bills & Invoices</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                <span class="nav-label">Bills & Invoices</span>
             </a>
+            <a href="#" class="nav-item" data-page="reports" id="nav-reports">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
+                <span class="nav-label">Download Report</span>
+            </a>
+
             <a href="#" class="nav-item" data-page="inventory" id="nav-inventory">
-                <span class="nav-icon">🏪</span><span class="nav-label">Inventory</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path></svg>
+                <span class="nav-label">Inventory</span>
                 <span class="nav-badge" id="stock-badge" style="display:none">!</span>
             </a>
             <a href="#" class="nav-item" data-page="sms" id="nav-sms">
-                <span class="nav-icon">💬</span><span class="nav-label">SMS Logs</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                <span class="nav-label">SMS Logs</span>
             </a>
         </nav>
 
@@ -176,6 +221,9 @@
             <div class="topbar-title" id="page-title">Dashboard</div>
             <div class="topbar-actions">
                 <div class="topbar-date" id="topbar-date"></div>
+                <button class="theme-switch-btn" id="theme-toggle" title="Switch Theme">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                </button>
             </div>
         </header>
 
@@ -187,67 +235,239 @@
             <!-- ╚══════════════════════════════╝ -->
             <div class="page active" id="page-dashboard">
                 <div class="page-header">
-                    <h2 class="page-heading">Good Evening, <span id="dash-user-name">Admin</span> 👋</h2>
-                    <p class="page-subheading">Here's what's happening with your service business today.</p>
+                    <div>
+                        <h2 class="page-heading">Good Evening, <span id="dash-user-name">Admin</span> 👋</h2>
+                        <p class="page-subheading">Here's what's happening with your service business today.</p>
+                    </div>
                 </div>
 
-                <!-- STAT CARDS -->
+                <!-- DAILY SERVICE BOX WIDGET -->
+                <div class="daily-service-box glass">
+                    <div class="daily-box-header">
+                        <div>
+                            <h3 class="daily-box-title" style="display: flex; align-items: center; gap: 0.6rem;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px; color: var(--accent-cyan);"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><line x1="9" y1="10" x2="15" y2="10"></line><line x1="9" y1="14" x2="15" y2="14"></line><line x1="9" y1="18" x2="13" y2="18"></line></svg>
+                                <span>Today's Daily Service Summary</span>
+                            </h3>
+                            <p class="daily-box-subtitle">Daily service visits, completed, pending, and overdue breakdown</p>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <button class="btn btn-sm btn-outline btn-export" onclick="exportTableToExcel('daily-services-table', 'DailyServicesSummary')">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                <span>Export Excel (.xls)</span>
+                            </button>
+                            <span class="badge badge-primary" id="daily-box-date-badge">Today</span>
+                        </div>
+                    </div>
+                    
+                    <div class="daily-kpi-grid">
+                        <div class="daily-kpi-card daily-kpi--total">
+                            <span class="daily-kpi-num" id="daily-stat-total">0</span>
+                            <span class="daily-kpi-lbl">Total Services Today</span>
+                        </div>
+                        <div class="daily-kpi-card daily-kpi--completed">
+                            <span class="daily-kpi-num" id="daily-stat-completed">0</span>
+                            <span class="daily-kpi-lbl">Completed</span>
+                        </div>
+                        <div class="daily-kpi-card daily-kpi--pending">
+                            <span class="daily-kpi-num" id="daily-stat-pending">0</span>
+                            <span class="daily-kpi-lbl">Pending</span>
+                        </div>
+                        <div class="daily-kpi-card daily-kpi--overdue">
+                            <span class="daily-kpi-num" id="daily-stat-overdue">0</span>
+                            <span class="daily-kpi-lbl">Overdue</span>
+                        </div>
+                    </div>
+
+                    <div class="table-wrapper" style="margin-top: 1rem;">
+                        <table class="data-table" id="daily-services-table">
+                            <thead>
+                                <tr>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Customer Name</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'daily-services-table', 0, 'text')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Mobile</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'daily-services-table', 1, 'text')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Service Type</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'daily-services-table', 2)">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Technician</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'daily-services-table', 3, 'text')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Status</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'daily-services-table', 4)">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Total Bill</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'daily-services-table', 5, 'numeric')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="daily-services-body">
+                                <tr><td colspan="6" class="text-muted text-center">Loading daily services...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <div class="stats-grid" id="stats-grid">
                     <div class="stat-card stat-card--blue">
-                        <div class="stat-icon">👤</div>
-                        <div class="stat-info">
+                        <div class="stat-card-top">
+                            <div class="stat-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                            </div>
+                            <span class="stat-trend">+8%</span>
+                        </div>
+                        <div class="stat-value-container">
                             <div class="stat-value" id="stat-customers">—</div>
                             <div class="stat-label">Total Customers</div>
                         </div>
+                        <div class="stat-progress-bar">
+                            <div class="stat-progress-fill" style="width: 80%"></div>
+                        </div>
+                        <span class="stat-meta-text">Target: 500 customers</span>
                     </div>
                     <div class="stat-card stat-card--cyan">
-                        <div class="stat-icon">🛠️</div>
-                        <div class="stat-info">
+                        <div class="stat-card-top">
+                            <div class="stat-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                            </div>
+                            <span class="stat-trend">+14%</span>
+                        </div>
+                        <div class="stat-value-container">
                             <div class="stat-value" id="stat-installations">—</div>
                             <div class="stat-label">Installations</div>
                         </div>
+                        <div class="stat-progress-bar">
+                            <div class="stat-progress-fill" style="width: 65%"></div>
+                        </div>
+                        <span class="stat-meta-text">Completed RO setups</span>
                     </div>
                     <div class="stat-card stat-card--green">
-                        <div class="stat-icon">💰</div>
-                        <div class="stat-info">
+                        <div class="stat-card-top">
+                            <div class="stat-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                            </div>
+                            <span class="stat-trend">+21%</span>
+                        </div>
+                        <div class="stat-value-container">
                             <div class="stat-value" id="stat-revenue">—</div>
                             <div class="stat-label">Total Revenue</div>
                         </div>
+                        <div class="stat-progress-bar">
+                            <div class="stat-progress-fill" style="width: 75%"></div>
+                        </div>
+                        <span class="stat-meta-text">Excl. service taxes</span>
                     </div>
                     <div class="stat-card stat-card--gold">
-                        <div class="stat-icon">📈</div>
-                        <div class="stat-info">
+                        <div class="stat-card-top">
+                            <div class="stat-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                            </div>
+                            <span class="stat-trend">+18%</span>
+                        </div>
+                        <div class="stat-value-container">
                             <div class="stat-value" id="stat-profit">—</div>
                             <div class="stat-label">Total Profit</div>
                         </div>
+                        <div class="stat-progress-bar">
+                            <div class="stat-progress-fill" style="width: 72%"></div>
+                        </div>
+                        <span class="stat-meta-text">Net margins calculated</span>
                     </div>
                     <div class="stat-card stat-card--orange">
-                        <div class="stat-icon">⚠️</div>
-                        <div class="stat-info">
+                        <div class="stat-card-top">
+                            <div class="stat-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            </div>
+                            <span class="stat-trend down" id="stat-overdue-trend">Pending</span>
+                        </div>
+                        <div class="stat-value-container">
                             <div class="stat-value" id="stat-overdue">—</div>
                             <div class="stat-label">Overdue Services</div>
                         </div>
+                        <div class="stat-progress-bar">
+                            <div class="stat-progress-fill" id="stat-overdue-fill" style="width: 20%"></div>
+                        </div>
+                        <span class="stat-meta-text">Requires attention</span>
                     </div>
                     <div class="stat-card stat-card--purple">
-                        <div class="stat-icon">🔧</div>
-                        <div class="stat-info">
+                        <div class="stat-card-top">
+                            <div class="stat-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                            </div>
+                            <span class="stat-trend">+10%</span>
+                        </div>
+                        <div class="stat-value-container">
                             <div class="stat-value" id="stat-services">—</div>
                             <div class="stat-label">Total Services</div>
                         </div>
+                        <div class="stat-progress-bar">
+                            <div class="stat-progress-fill" style="width: 85%"></div>
+                        </div>
+                        <span class="stat-meta-text">All jobs accounted for</span>
                     </div>
                     <div class="stat-card stat-card--red">
-                        <div class="stat-icon">📦</div>
-                        <div class="stat-info">
+                        <div class="stat-card-top">
+                            <div class="stat-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><polygon points="12 22.08 12 12 3 6.92 3 17.08 12 22.08"></polygon><polygon points="12 12 21 6.92 21 17.08 12 22.08"></polygon><polygon points="12 2 21 6.92 12 12 3 6.92 12 2"></polygon><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                            </div>
+                            <span class="stat-trend down" id="stat-lowstock-trend">Reorder</span>
+                        </div>
+                        <div class="stat-value-container">
                             <div class="stat-value" id="stat-lowstock">—</div>
                             <div class="stat-label">Low Stock Items</div>
                         </div>
+                        <div class="stat-progress-bar">
+                            <div class="stat-progress-fill" id="stat-lowstock-fill" style="width: 10%"></div>
+                        </div>
+                        <span class="stat-meta-text">Spare parts levels</span>
                     </div>
                     <div class="stat-card stat-card--teal">
-                        <div class="stat-icon">👷</div>
-                        <div class="stat-info">
+                        <div class="stat-card-top">
+                            <div class="stat-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6"></path><path d="M22 11h-6"></path></svg>
+                            </div>
+                            <span class="stat-trend">Online</span>
+                        </div>
+                        <div class="stat-value-container">
                             <div class="stat-value" id="stat-technicians">—</div>
                             <div class="stat-label">Active Technicians</div>
                         </div>
+                        <div class="stat-progress-bar">
+                            <div class="stat-progress-fill" style="width: 90%"></div>
+                        </div>
+                        <span class="stat-meta-text">Assigned daily tasks</span>
                     </div>
                 </div>
 
@@ -301,13 +521,59 @@
                 <div class="section-card glass">
                     <div class="table-toolbar">
                         <input type="text" class="search-input" id="customer-search" placeholder="🔍  Search by name, mobile, city…">
+                        <button class="btn btn-sm btn-outline btn-export" onclick="exportTableToExcel('customers-table', 'Customers')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <span>Export Excel (.xls)</span>
+                        </button>
                     </div>
                     <div class="table-wrapper">
-                        <table class="data-table">
-                            <thead><tr>
-                                <th>#</th><th>Name</th><th>Mobile</th><th>City</th>
-                                <th>Address</th><th>Joined</th><th>Actions</th>
-                            </tr></thead>
+                        <table class="data-table" id="customers-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Name</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'customers-table', 1, 'text')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Mobile</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'customers-table', 2, 'text')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>City</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'customers-table', 3)">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Address</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'customers-table', 4)">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Joined</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'customers-table', 5, 'date')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
                             <tbody id="customers-body"></tbody>
                         </table>
                     </div>
@@ -344,8 +610,8 @@
                     <div class="table-wrapper">
                         <table class="data-table">
                             <thead><tr>
-                                <th>#</th><th>Product Name</th><th>Brand</th><th>Model</th>
-                                <th>Serial No.</th><th>Warranty</th><th>Actions</th>
+                                <th>#</th><th>Model / Product Name</th><th>Brand</th><th>Cost Price (₹)</th>
+                                <th>Selling Price (₹)</th><th>Margin (₹)</th><th>Warranty</th><th>Actions</th>
                             </tr></thead>
                             <tbody id="products-body"></tbody>
                         </table>
@@ -367,14 +633,91 @@
                 <div class="section-card glass">
                     <div class="table-toolbar">
                         <input type="text" class="search-input" id="installation-search" placeholder="🔍  Search by customer…">
+                        <button class="btn btn-sm btn-outline btn-export" onclick="exportTableToExcel('installations-table', 'Installations')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <span>Export Excel (.xls)</span>
+                        </button>
                     </div>
                     <div class="table-wrapper">
-                        <table class="data-table">
-                            <thead><tr>
-                                <th>#</th><th>Customer</th><th>Product</th><th>Technician</th>
-                                <th>Source</th><th>Input TDS</th><th>Output TDS</th>
-                                <th>Selling Price</th><th>Profit</th><th>Date</th><th>Actions</th>
-                            </tr></thead>
+                        <table class="data-table" id="installations-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Customer</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'installations-table', 1, 'text')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Product</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'installations-table', 2, 'text')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Technician</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'installations-table', 3, 'text')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Source</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'installations-table', 4)">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Input TDS</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'installations-table', 5, 'numeric')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Output TDS</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'installations-table', 6, 'numeric')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Selling Price</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'installations-table', 7, 'numeric')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Profit</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'installations-table', 8, 'numeric')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Date</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'installations-table', 9, 'date')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
                             <tbody id="installations-body"></tbody>
                         </table>
                     </div>
@@ -399,13 +742,68 @@
                     </div>
                 </div>
                 <div class="section-card glass">
+                    <div class="table-toolbar" style="justify-content: flex-end;">
+                        <button class="btn btn-sm btn-outline btn-export" onclick="exportTableToExcel('schedules-table', 'ServiceSchedules')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <span>Export Excel (.xls)</span>
+                        </button>
+                    </div>
                     <div class="table-wrapper">
-                        <table class="data-table">
-                            <thead><tr>
-                                <th>#</th><th>Customer</th><th>Installation ID</th>
-                                <th>Next Service</th><th>Interval</th><th>Status</th>
-                                <th>Reminder</th><th>Actions</th>
-                            </tr></thead>
+                        <table class="data-table" id="schedules-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Customer</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'schedules-table', 1, 'text')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Installation ID</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'schedules-table', 2)">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Next Service</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'schedules-table', 3, 'date')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Interval</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'schedules-table', 4, 'numeric')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Status</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'schedules-table', 5)">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Reminder</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'schedules-table', 6)">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
                             <tbody id="schedules-body"></tbody>
                         </table>
                     </div>
@@ -426,14 +824,91 @@
                 <div class="section-card glass">
                     <div class="table-toolbar">
                         <input type="text" class="search-input" id="service-search" placeholder="🔍  Search by customer…">
+                        <button class="btn btn-sm btn-outline btn-export" onclick="exportTableToExcel('services-table', 'Services')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <span>Export Excel (.xls)</span>
+                        </button>
                     </div>
                     <div class="table-wrapper">
-                        <table class="data-table">
-                            <thead><tr>
-                                <th>#</th><th>Customer</th><th>Type</th><th>Technician</th>
-                                <th>TDS Before</th><th>TDS After</th><th>Charge</th>
-                                <th>Parts</th><th>Total</th><th>Date</th><th>Actions</th>
-                            </tr></thead>
+                        <table class="data-table" id="services-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Customer</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'services-table', 1, 'text')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Type</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'services-table', 2)">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Technician</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'services-table', 3, 'text')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>TDS Before</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'services-table', 4, 'numeric')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>TDS After</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'services-table', 5, 'numeric')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Charge</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'services-table', 6, 'numeric')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Parts</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'services-table', 7, 'numeric')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Total</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'services-table', 8, 'numeric')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Date</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'services-table', 9, 'date')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
                             <tbody id="services-body"></tbody>
                         </table>
                     </div>
@@ -455,14 +930,68 @@
                 <div class="section-card glass">
                     <div class="table-toolbar">
                         <input type="text" class="search-input" id="bill-search" placeholder="🔍  Search by customer or invoice…">
+                        <button class="btn btn-sm btn-outline btn-export" onclick="exportTableToExcel('bills-table', 'BillsAndInvoices')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <span>Export Excel (.xls)</span>
+                        </button>
                     </div>
                     <div class="table-wrapper">
-                        <table class="data-table">
-                            <thead><tr>
-                                <th>Invoice #</th><th>Customer</th><th>Date</th>
-                                <th>Subtotal</th><th>Service Charge</th><th>Grand Total</th>
-                                <th>Payment</th><th>Mode</th><th>Actions</th>
-                            </tr></thead>
+                        <table class="data-table" id="bills-table">
+                            <thead>
+                                <tr>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Invoice #</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'bills-table', 0)">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Customer</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'bills-table', 1, 'text')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Date</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'bills-table', 2, 'date')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th>Subtotal</th>
+                                    <th>Service Charge</th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Grand Total</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'bills-table', 5, 'numeric')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Payment</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'bills-table', 6)">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Mode</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'bills-table', 7)">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
                             <tbody id="bills-body"></tbody>
                         </table>
                     </div>
@@ -485,13 +1014,56 @@
                     </div>
                 </div>
                 <div class="section-card glass">
+                    <div class="table-toolbar">
+                        <input type="text" class="search-input" id="inventory-search" placeholder="🔍  Search by part name or brand…">
+                        <button class="btn btn-sm btn-outline btn-export" onclick="exportTableToExcel('inventory-table', 'Inventory')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <span>Export Excel (.xls)</span>
+                        </button>
+                    </div>
                     <div class="table-wrapper">
-                        <table class="data-table">
-                            <thead><tr>
-                                <th>#</th><th>Part Name</th><th>Brand</th>
-                                <th>Stock</th><th>Reorder Lvl</th><th>Buy Price</th>
-                                <th>Sell Price</th><th>Status</th><th>Actions</th>
-                            </tr></thead>
+                        <table class="data-table" id="inventory-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Part Name</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'inventory-table', 1, 'text')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Brand</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'inventory-table', 2, 'text')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Stock</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'inventory-table', 3, 'numeric')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th>Reorder Lvl</th>
+                                    <th>Buy Price</th>
+                                    <th>Sell Price</th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Status</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'inventory-table', 7)">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
                             <tbody id="inventory-body"></tbody>
                         </table>
                     </div>
@@ -509,20 +1081,156 @@
                     </div>
                 </div>
                 <div class="section-card glass">
+                    <div class="table-toolbar">
+                        <input type="text" class="search-input" id="sms-search" placeholder="🔍  Search by mobile or message text…">
+                        <button class="btn btn-sm btn-outline btn-export" onclick="exportTableToExcel('sms-table', 'SMSLogs')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <span>Export Excel (.xls)</span>
+                        </button>
+                    </div>
                     <div class="table-wrapper">
-                        <table class="data-table">
-                            <thead><tr>
-                                <th>#</th><th>Customer</th><th>Mobile</th>
-                                <th>Message</th><th>Status</th><th>Sent At</th>
-                            </tr></thead>
+                        <table class="data-table" id="sms-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Customer</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'sms-table', 1, 'text')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Mobile</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'sms-table', 2, 'text')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Message</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'sms-table', 3)">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Status</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'sms-table', 4)">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                    <th class="filterable-th">
+                                        <div class="th-content">
+                                            <span>Sent At</span>
+                                            <button class="th-filter-trigger" onclick="toggleColumnFilter(event, 'sms-table', 5, 'date')">
+                                                <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                                            </button>
+                                        </div>
+                                    </th>
+                                </tr>
+                            </thead>
                             <tbody id="sms-body"></tbody>
                         </table>
                     </div>
-                    <div class="table-pagination" id="sms-pagination"></div>
+                    <div id="sms-pagination" class="pagination"></div>
+                </div>
+            </div>
+
+            <!-- ╔══════════════════════════════╗ -->
+            <!-- ║    DOWNLOAD REPORT PAGE       ║ -->
+            <!-- ╚══════════════════════════════╝ -->
+            <div class="page" id="page-reports">
+                <div class="page-header">
+                    <div>
+                        <h2 class="page-heading">Download Report</h2>
+                        <p class="page-subheading">Download reports in .xls format for installation, service, or as a whole</p>
+                    </div>
+                </div>
+
+                <div class="section-card glass" style="max-width: 800px; margin: 0 auto;">
+                    <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1.5rem;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 32px; height: 32px; color: var(--accent-cyan);"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
+                        <div>
+                            <h3 style="font-size:1.25rem; font-weight:700; margin:0;">Download Report (.xls)</h3>
+                            <p style="font-size:0.875rem; color:var(--text-muted); margin:0;">Select date option (Custom Date to Date, Single Date, Week, Month) and report type</p>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Filter Date Option *</label>
+                            <select id="report-filter-type">
+                                <option value="all">All Time (All Records)</option>
+                                <option value="custom">Custom Date to Date</option>
+                                <option value="single_date">Single Date</option>
+                                <option value="week">Week Selection</option>
+                                <option value="month">Month Selection</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Report Option *</label>
+                            <select id="report-type">
+                                <option value="installations">Installation Report</option>
+                                <option value="services">Service Report</option>
+                                <option value="master">All / Whole Report</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Date Controls -->
+                    <div id="report-date-controls" class="form-row hidden" style="margin-top: 0.5rem;">
+                        <div class="form-group hidden" id="group-start-date">
+                            <label>From Date (Start) *</label>
+                            <input type="date" id="report-start-date">
+                        </div>
+                        <div class="form-group hidden" id="group-end-date">
+                            <label>To Date (End) *</label>
+                            <input type="date" id="report-end-date">
+                        </div>
+                        <div class="form-group hidden" id="group-single-date">
+                            <label>Select Date *</label>
+                            <input type="date" id="report-single-date">
+                        </div>
+                        <div class="form-group hidden" id="group-month-picker">
+                            <label>Select Month *</label>
+                            <input type="month" id="report-month-picker">
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 1.5rem; display: flex; gap: 1rem; align-items: center;">
+                        <button class="btn btn-primary btn-lg" id="btn-export-excel" style="padding: 0.75rem 1.75rem;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                            <span>Download Report (.xls)</span>
+                        </button>
+                    </div>
+
+                    <!-- Live On-Screen Report Preview Table -->
+                    <div style="margin-top:2rem; border-top:1px solid var(--border); padding-top:1.5rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                            <h4 style="margin:0; font-family:Outfit,sans-serif; color:var(--accent-cyan); display:flex; align-items:center; gap:0.5rem;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                <span>Live Report Preview</span>
+                            </h4>
+                            <span class="badge badge-blue" id="report-preview-count">0 Records</span>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead id="report-preview-head"></thead>
+                                <tbody id="report-preview-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
 
         </div><!-- end .page-container -->
+
     </div><!-- end .main-content -->
 </div><!-- end #app -->
 
@@ -617,10 +1325,56 @@
                 <label>Address</label>
                 <textarea id="tf-address" rows="2" placeholder="Home address"></textarea>
             </div>
+
+            <!-- ── Photo Upload ── -->
+            <div class="form-group" style="margin-top:0.5rem;">
+                <label style="font-weight:600;">Profile Photo</label>
+                <div id="tf-photo-dropzone" style="
+                    border: 2px dashed var(--border-hover);
+                    border-radius: var(--radius-md);
+                    padding: 1rem;
+                    text-align: center;
+                    cursor: pointer;
+                    transition: var(--transition);
+                    background: var(--input-bg);
+                    position: relative;
+                " onclick="document.getElementById('tf-photo-input').click()"
+                   ondragover="event.preventDefault();this.style.borderColor='var(--accent-cyan)'"
+                   ondragleave="this.style.borderColor='var(--border-hover)'"
+                   ondrop="App.handleTechPhotoDrop(event)">
+                    <div id="tf-photo-preview-wrap" style="display:none;flex-direction:column;align-items:center;gap:0.5rem;">
+                        <img id="tf-photo-preview" src="" alt="Preview" style="width:72px;height:72px;object-fit:cover;border-radius:50%;border:3px solid var(--accent-cyan);">
+                        <button type="button" onclick="event.stopPropagation();App.clearTechPhoto()" style="font-size:0.75rem;color:var(--accent-red);background:none;border:none;cursor:pointer;">✕ Remove photo</button>
+                    </div>
+                    <div id="tf-photo-placeholder" style="color:var(--text-muted);font-size:0.88rem;">
+                        <div style="font-size:2rem;margin-bottom:0.25rem;">📷</div>
+                        Click or drag &amp; drop a photo<br>
+                        <span style="font-size:0.78rem;">PNG, JPG, WEBP · max 5 MB</span>
+                    </div>
+                    <input type="file" id="tf-photo-input" accept="image/*" style="display:none" onchange="App.handleTechPhotoSelect(event)">
+                </div>
+                <input type="hidden" id="tf-photo-url" value="">
+            </div>
+
+            <div style="border-top:1px solid var(--border); margin:1rem 0; padding-top:1rem;">
+                <div style="font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--accent-orange);margin-bottom:0.75rem;">🔑 Portal Login Credentials</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Technician ID <span style="color:var(--text-muted);font-weight:400;">(auto-generated if blank)</span></label>
+                        <input type="text" id="tf-tech-id" placeholder="e.g. TECH105" style="font-family:'Courier New',monospace;font-weight:600;">
+                    </div>
+                    <div class="form-group">
+                        <label>Passcode <span style="color:var(--text-muted);font-weight:400;">(default: 123456)</span></label>
+                        <input type="text" id="tf-passcode" placeholder="Enter passcode">
+                    </div>
+                </div>
+                <p style="font-size:0.75rem;color:var(--text-muted);">The technician uses this ID and passcode to log in to the Technician Portal.</p>
+            </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline" data-modal="modal-technician">Cancel</button>
                 <button type="submit" class="btn btn-primary">Save Technician</button>
             </div>
+
         </form>
     </div>
 </div>
@@ -636,7 +1390,7 @@
             <input type="hidden" id="pf-id">
             <div class="form-row">
                 <div class="form-group">
-                    <label>Product Name *</label>
+                    <label>Model / Product Name *</label>
                     <input type="text" id="pf-name" required placeholder="e.g. AquaGuard Marvel 6L">
                 </div>
                 <div class="form-group">
@@ -646,18 +1400,25 @@
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>Model Number</label>
-                    <input type="text" id="pf-model" placeholder="Model code">
+                    <label>Cost Price (₹) *</label>
+                    <input type="number" id="pf-cost" required placeholder="e.g. 7000" min="0" step="0.01">
                 </div>
                 <div class="form-group">
-                    <label>Serial Number</label>
-                    <input type="text" id="pf-serial" placeholder="Serial number">
+                    <label>Selling Price (₹) *</label>
+                    <input type="number" id="pf-sell" required placeholder="e.g. 11500" min="0" step="0.01">
                 </div>
             </div>
-            <div class="form-group" style="max-width:200px">
-                <label>Warranty (months)</label>
-                <input type="number" id="pf-warranty" placeholder="12" value="12" min="0">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Model Code / No.</label>
+                    <input type="text" id="pf-model" placeholder="Optional model code">
+                </div>
+                <div class="form-group">
+                    <label>Warranty (months)</label>
+                    <input type="number" id="pf-warranty" placeholder="12" value="12" min="0">
+                </div>
             </div>
+
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline" data-modal="modal-product">Cancel</button>
                 <button type="submit" class="btn btn-primary">Save Product</button>
@@ -942,11 +1703,460 @@
     </div>
 </div>
 
+<!-- Bill View / Thermal Print Modal -->
+<div class="modal-overlay" id="modal-bill-view">
+    <div class="modal modal-xl glass">
+        <div class="modal-header">
+            <h3>Invoice & Receipt Viewer</h3>
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+                <button class="btn btn-sm btn-outline" id="btn-print-standard">🖨️ Standard Print</button>
+                <button class="btn btn-sm btn-primary" id="btn-print-thermal">🧾 Thermal Print (80mm)</button>
+                <button class="modal-close" data-modal="modal-bill-view">✕</button>
+            </div>
+        </div>
+        <div id="bill-view-content" class="bill-view-container" style="max-height:75vh; overflow-y:auto; padding:1rem;">
+            <!-- Rendered dynamically by JS -->
+        </div>
+    </div>
+</div>
+
 <!-- Toast Notification -->
 <div class="toast-container" id="toast-container"></div>
 
 <!-- Sidebar Overlay (mobile) -->
 <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- TECHNICIAN PORTAL (shown when logged in as technician)     -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="tech-portal" class="tech-portal hidden">
+    <!-- Tech Portal Header -->
+    <div class="tech-portal-header glass">
+        <div class="tech-portal-brand">
+            <img src="/static/logo.jpg" class="app-logo-img" alt="Aqua Care Logo" style="width: 2rem; height: 2rem; border-width: 1px;">
+            <div>
+                <div class="tech-portal-title" style="font-size: 1rem; line-height: 1.1;">AQUA CARE</div>
+                <div class="tech-portal-subtitle">WATER SOLUTIONS</div>
+            </div>
+        </div>
+        <div class="tech-portal-info">
+            <div class="tech-info-card">
+                <span class="tech-badge-icon" id="tech-portal-avatar-wrap">
+                    <!-- Photo or fallback icon shown here -->
+                    <span id="tech-portal-avatar-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; color: var(--accent-orange);"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                    </span>
+                    <img id="tech-portal-avatar-img" src="" alt="Photo" style="display:none;width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--accent-cyan);">
+                </span>
+                <div>
+                    <div class="tech-info-name" id="tech-portal-name">Technician</div>
+                    <div class="tech-info-id" id="tech-portal-id">TECH-XXX</div>
+                </div>
+                <span class="badge badge-success" id="tech-portal-status">Active</span>
+            </div>
+        </div>
+        <button class="btn btn-outline btn-sm" id="tech-logout-btn" onclick="App.techLogout()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+            Sign Out
+        </button>
+    </div>
+
+    <!-- Tech Portal Tabs -->
+    <div class="tech-portal-tabs">
+        <button class="tech-tab active" data-tech-tab="install" onclick="App.switchTechTab('install')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px; margin-right: 4px; display: inline-block; vertical-align: middle;"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg> New Installation
+        </button>
+        <button class="tech-tab" data-tech-tab="service" onclick="App.switchTechTab('service')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px; margin-right: 4px; display: inline-block; vertical-align: middle;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> New Service
+        </button>
+        <button class="tech-tab" data-tech-tab="jobs" onclick="App.switchTechTab('jobs')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px; margin-right: 4px; display: inline-block; vertical-align: middle;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> My Jobs
+        </button>
+    </div>
+
+    <div class="tech-portal-body">
+
+        <!-- ── TAB: NEW INSTALLATION ───────────────────────── -->
+        <div class="tech-tab-panel active" id="tech-tab-install">
+            <div class="tech-section-header">
+                <h2>Record New Installation</h2>
+                <p>Fill in all details after completing the installation at customer site</p>
+            </div>
+
+            <form id="tech-install-form" class="tech-form glass" onsubmit="App.techSubmitInstall(event)">
+                <!-- Customer Section -->
+                <div class="tech-form-section">
+                    <div class="tech-form-section-title">Customer Details</div>
+                    <div class="tech-form-grid">
+                        <div class="form-group">
+                            <label>Select Existing Customer</label>
+                            <select id="ti-customer-select" onchange="App.techFillCustomer(this.value)">
+                                <option value="">— New Customer —</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="ti-customer-name">Customer Name <span class="req">*</span></label>
+                            <input type="text" id="ti-customer-name" placeholder="Full Name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="ti-mobile">Mobile Number <span class="req">*</span></label>
+                            <input type="tel" id="ti-mobile" placeholder="9876543210" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="ti-address">Address</label>
+                            <input type="text" id="ti-address" placeholder="House No, Street, Area">
+                        </div>
+                        <div class="form-group">
+                            <label for="ti-city">City</label>
+                            <input type="text" id="ti-city" placeholder="Hyderabad">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Unit / Product Section -->
+                <div class="tech-form-section">
+                    <div class="tech-form-section-title">Unit / Product Details</div>
+                    <div class="tech-form-grid">
+                        <div class="form-group">
+                            <label for="ti-product">Select RO Unit / Model <span class="req">*</span></label>
+                            <select id="ti-product" required>
+                                <option value="">— Select Unit —</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="ti-install-date">Installation Date <span class="req">*</span></label>
+                            <input type="date" id="ti-install-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="ti-warranty">Warranty Period</label>
+                            <select id="ti-warranty">
+                                <option value="6">6 Months</option>
+                                <option value="12" selected>12 Months (1 Year)</option>
+                                <option value="18">18 Months</option>
+                                <option value="24">24 Months (2 Years)</option>
+                                <option value="36">36 Months (3 Years)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="ti-source-water">Source Water Type</label>
+                            <select id="ti-source-water">
+                                <option value="Municipal">Municipal / Corporation</option>
+                                <option value="Borewell">Borewell</option>
+                                <option value="Tanker">Tanker Water</option>
+                                <option value="Well">Open Well</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TDS Section -->
+                <div class="tech-form-section">
+                    <div class="tech-form-section-title">TDS Levels</div>
+                    <div class="tech-form-grid tech-form-grid-2">
+                        <div class="form-group">
+                            <label for="ti-input-tds">Input TDS (ppm)</label>
+                            <input type="number" id="ti-input-tds" placeholder="e.g. 850" min="0" max="9999" step="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="ti-output-tds">Output TDS (ppm)</label>
+                            <input type="number" id="ti-output-tds" placeholder="e.g. 45" min="0" max="9999" step="1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Photo Upload Section -->
+                <div class="tech-form-section">
+                    <div class="tech-form-section-title">Installation Photo</div>
+                    <div class="photo-upload-zone" id="photo-upload-zone" onclick="document.getElementById('ti-photo-input').click()">
+                        <div class="photo-upload-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 40px; height: 40px; color: var(--accent-orange); margin: 0 auto 8px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                        </div>
+                        <div class="photo-upload-text">Click to upload installation photo</div>
+                        <div class="photo-upload-hint">JPG, PNG up to 10MB</div>
+                        <input type="file" id="ti-photo-input" accept="image/*" style="display:none" onchange="App.techPreviewPhoto(this)">
+                    </div>
+                    <div id="ti-photo-preview" class="photo-preview-container hidden"></div>
+                    <input type="hidden" id="ti-photo-url">
+                </div>
+
+                <!-- Remarks -->
+                <div class="tech-form-section">
+                    <div class="form-group">
+                        <label for="ti-remarks">Remarks / Notes</label>
+                        <textarea id="ti-remarks" rows="3" placeholder="Any special observations, issues or notes..."></textarea>
+                    </div>
+                </div>
+
+                <div class="tech-form-actions">
+                    <button type="button" class="btn btn-outline" onclick="App.techResetInstallForm()">Reset</button>
+                    <button type="submit" class="btn btn-tech btn-lg" id="tech-install-submit-btn">
+                        <span>Submit Installation</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- ── TAB: NEW SERVICE ────────────────────────────── -->
+        <div class="tech-tab-panel" id="tech-tab-service">
+            <div class="tech-section-header">
+                <h2>Log a Service Visit</h2>
+                <p>Select customer and fill in service details after completing work</p>
+            </div>
+
+            <form id="tech-service-form" class="tech-form glass" onsubmit="App.techSubmitService(event)">
+                <!-- Customer & Installation -->
+                <div class="tech-form-section">
+                    <div class="tech-form-section-title">Customer & Installation</div>
+                    <div class="tech-form-grid">
+                        <div class="form-group">
+                            <label for="ts-customer">Select Customer <span class="req">*</span></label>
+                            <select id="ts-customer" required onchange="App.techLoadCustomerInstalls(this.value)">
+                                <option value="">— Select Customer —</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="ts-installation">Installation / Unit</label>
+                            <select id="ts-installation">
+                                <option value="">— Select Installation —</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Service Details -->
+                <div class="tech-form-section">
+                    <div class="tech-form-section-title">Service Details</div>
+                    <div class="tech-form-grid">
+                        <div class="form-group">
+                            <label for="ts-service-type">Service Type <span class="req">*</span></label>
+                            <select id="ts-service-type" required>
+                                <option value="Regular">Regular Service</option>
+                                <option value="Repair">Repair</option>
+                                <option value="AMC">AMC Visit</option>
+                                <option value="Filter Replacement">Filter Replacement</option>
+                                <option value="Mandatory Checkup">Mandatory Checkup</option>
+                                <option value="Emergency">Emergency Call</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="ts-service-date">Service Date <span class="req">*</span></label>
+                            <input type="date" id="ts-service-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="ts-service-charge">Service Charge (₹)</label>
+                            <input type="number" id="ts-service-charge" placeholder="0.00" min="0" step="0.01" value="0" oninput="App.techCalcServiceTotal()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TDS Readings -->
+                <div class="tech-form-section">
+                    <div class="tech-form-section-title">TDS Readings</div>
+                    <div class="tech-form-grid tech-form-grid-2">
+                        <div class="form-group">
+                            <label for="ts-tds-before">TDS Before Service (ppm)</label>
+                            <input type="number" id="ts-tds-before" placeholder="e.g. 200" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="ts-tds-after">TDS After Service (ppm)</label>
+                            <input type="number" id="ts-tds-after" placeholder="e.g. 35" min="0">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Spare Parts -->
+                <div class="tech-form-section">
+                    <div class="tech-form-section-title">Spare Parts Used</div>
+                    <div id="tech-parts-list" class="tech-parts-container"></div>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="App.techAddPart()">
+                        + Add Spare Part
+                    </button>
+                    <div class="tech-service-total glass" id="tech-service-total-box">
+                        <div class="total-row">
+                            <span>Service Charge:</span>
+                            <span id="ts-total-charge">₹0.00</span>
+                        </div>
+                        <div class="total-row">
+                            <span>Parts Total:</span>
+                            <span id="ts-total-parts">₹0.00</span>
+                        </div>
+                        <div class="total-row total-grand">
+                            <span>Grand Total:</span>
+                            <span id="ts-grand-total">₹0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Remarks -->
+                <div class="tech-form-section">
+                    <div class="form-group">
+                        <label for="ts-remarks">Remarks / Observations</label>
+                        <textarea id="ts-remarks" rows="3" placeholder="Work done, parts replaced, customer feedback..."></textarea>
+                    </div>
+                </div>
+
+                <div class="tech-form-actions">
+                    <button type="button" class="btn btn-outline" onclick="App.techResetServiceForm()">Reset</button>
+                    <button type="submit" class="btn btn-tech btn-lg" id="tech-service-submit-btn">
+                        <span>Submit Service Record</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- ── TAB: MY JOBS ────────────────────────────────── -->
+        <div class="tech-tab-panel" id="tech-tab-jobs">
+            <div class="tech-section-header">
+                <h2>My Recent Jobs</h2>
+                <p>History of installations and services completed by you</p>
+            </div>
+            <div class="tech-jobs-grid">
+                <div class="tech-jobs-col">
+                    <div class="tech-jobs-col-header">Recent Installations</div>
+                    <div id="tech-jobs-installs" class="tech-jobs-list">
+                        <div class="tech-empty-state">Loading...</div>
+                    </div>
+                </div>
+                <div class="tech-jobs-col">
+                    <div class="tech-jobs-col-header">Recent Services</div>
+                    <div id="tech-jobs-services" class="tech-jobs-list">
+                        <div class="tech-empty-state">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Installation Photo Lightbox -->
+<div class="lightbox-overlay hidden" id="photo-lightbox" onclick="App.closeLightbox()">
+    <div class="lightbox-content" onclick="event.stopPropagation()">
+        <button class="lightbox-close" onclick="App.closeLightbox()">✕</button>
+        <img id="lightbox-img" src="" alt="Installation Photo" class="lightbox-img">
+        <div class="lightbox-caption" id="lightbox-caption"></div>
+    </div>
+</div>
+
+<!-- Advanced Floating Quick Action Drawer -->
+<div class="floating-drawer-container" id="quick-action-drawer">
+    <div class="floating-drawer-menu">
+        <div class="floating-action-item floating-action-item--customer" onclick="openModal('modal-customer'); toggleQuickDrawer();" title="Add Customer">
+            <div class="floating-action-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 11h6"></path><path d="M25 8v6"></path></svg>
+            </div>
+            <span>New Customer</span>
+        </div>
+        <div class="floating-action-item floating-action-item--installation" onclick="openModal('modal-installation'); toggleQuickDrawer();" title="New Installation">
+            <div class="floating-action-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+            </div>
+            <span>New Setup</span>
+        </div>
+        <div class="floating-action-item floating-action-item--service" onclick="openModal('modal-service'); toggleQuickDrawer();" title="Record Service">
+            <div class="floating-action-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </div>
+            <span>Record Job</span>
+        </div>
+        <div class="floating-action-item floating-action-item--bill" onclick="openModal('modal-bill'); toggleQuickDrawer();" title="Create Bill">
+            <div class="floating-action-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            </div>
+            <span>New Invoice</span>
+        </div>
+    </div>
+    <button class="floating-drawer-trigger" id="quick-action-trigger" onclick="toggleQuickDrawer()" title="Quick Actions">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    </button>
+</div>
+
+<!-- Export Filter Modal -->
+<div class="modal-overlay" id="modal-export-filter">
+    <div class="modal glass" style="max-width: 400px;">
+        <div class="modal-header">
+            <h3 id="export-modal-title">Export Options</h3>
+            <button class="modal-close" data-modal="modal-export-filter">✕</button>
+        </div>
+        <div class="modal-body" style="padding: 1.25rem 1.5rem;">
+            <input type="hidden" id="export-target-table-id">
+            <input type="hidden" id="export-target-filename">
+            
+            <div class="form-group" id="export-date-range-group">
+                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block; color: var(--text-primary);">Filter by Date Range</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                    <div>
+                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 0.25rem;">From</span>
+                        <input type="date" id="export-from-date" style="width: 100%; padding: 0.45rem; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--input-bg); color: var(--text-primary); outline: none;">
+                    </div>
+                    <div>
+                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 0.25rem;">To</span>
+                        <input type="date" id="export-to-date" style="width: 100%; padding: 0.45rem; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--input-bg); color: var(--text-primary); outline: none;">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group" style="margin-top: 1.25rem;">
+                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block; color: var(--text-primary);">Export Selection</label>
+                <div style="display: flex; flex-direction: column; gap: 0.65rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; cursor: pointer; color: var(--text-secondary);">
+                        <input type="radio" name="export-scope" value="all" checked style="accent-color: var(--accent-cyan);">
+                        <span>All records currently in the list</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; cursor: pointer; color: var(--text-secondary);">
+                        <input type="radio" name="export-scope" value="filtered" style="accent-color: var(--accent-cyan);">
+                        <span>Only matching current column filters / searches</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer" style="margin-top: 1.25rem; justify-content: flex-end; gap: 0.5rem;">
+            <button type="button" class="btn btn-outline" data-modal="modal-export-filter" onclick="closeModal('modal-export-filter')">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="confirmExportExcel()">Export File</button>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Column Filter Popover -->
+<div id="table-filter-popover" class="filter-popover glass hidden">
+    <div class="popover-header">
+        <span class="popover-title">Filter Column</span>
+    </div>
+    <div class="popover-body">
+        <div id="popover-checkbox-list" class="popover-checkbox-list"></div>
+    </div>
+    <div class="popover-footer">
+        <button class="btn btn-sm btn-outline" style="padding: 0.35rem 0.75rem; font-size: 0.78rem;" onclick="clearPopoverFilter()">Clear</button>
+        <button class="btn btn-sm btn-primary" style="padding: 0.35rem 0.75rem; font-size: 0.78rem;" onclick="applyPopoverFilter()">Apply</button>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PRINT SUCCESS MODAL (shown after installation/service) -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="modal-print-success" class="modal-overlay">
+    <div class="modal-box" style="max-width:380px;text-align:center;">
+        <div style="font-size:3rem;margin-bottom:0.5rem;">✅</div>
+        <h2 style="color:var(--accent-green);font-size:1.3rem;margin-bottom:0.25rem;">
+            <span id="print-success-type">Installation</span> Recorded!
+        </h2>
+        <p style="color:var(--text-secondary);font-size:0.95rem;margin-bottom:0.15rem;">
+            Customer: <strong id="print-success-customer" style="color:var(--text-primary)"></strong>
+        </p>
+        <p style="color:var(--text-secondary);font-size:0.95rem;margin-bottom:1.5rem;">
+            Amount: <strong id="print-success-amount" style="color:var(--accent-cyan);font-size:1.1rem"></strong>
+        </p>
+        <div style="display:flex;flex-direction:column;gap:0.75rem;">
+            <button id="print-success-btn" class="btn btn-primary" style="width:100%;font-size:1rem;padding:0.8rem;gap:0.5rem;background:linear-gradient(135deg,#0ea5e9,#06b6d4);">
+                🖨️ Print Thermal Bill
+            </button>
+            <button class="btn btn-outline" style="width:100%;" onclick="closeModal('modal-print-success');App.switchTechTab('jobs');">
+                Done (Skip Print)
+            </button>
+        </div>
+    </div>
+</div>
 
 <script src="/static/js/app.js"></script>
 </body>
