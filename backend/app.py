@@ -22,22 +22,36 @@ BASE_DIR  = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TMPL_DIR  = os.path.join(BASE_DIR, 'frontend', 'templates')
 STATIC_DIR = os.path.join(BASE_DIR, 'frontend', 'static')
 
-app = Flask(__name__, template_folder=TMPL_DIR, static_folder=STATIC_DIR, instance_path=os.path.join(BASE_DIR, 'instance'))
+is_serverless = bool(os.getenv('VERCEL') or os.getenv('AWS_LAMBDA_FUNCTION_NAME'))
 
-app.config['SECRET_KEY']            = os.getenv('SECRET_KEY', 'pureflow-dev-secret-2024')
-sqlite_fallback = 'sqlite:///:memory:' if os.getenv('VERCEL') == '1' else f'sqlite:///{os.path.join(BASE_DIR, "pureflow.db")}'
+app = Flask(__name__, template_folder=TMPL_DIR, static_folder=STATIC_DIR)
+
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'pureflow-dev-secret-2024')
+
+# Database URI configuration with Supabase / PostgreSQL support
+if is_serverless:
+    sqlite_fallback = 'sqlite:////tmp/pureflow.db'
+else:
+    sqlite_fallback = f'sqlite:///{os.path.join(BASE_DIR, "pureflow.db")}'
+
 raw_db_url = os.getenv('DATABASE_URL', sqlite_fallback)
 if raw_db_url and raw_db_url.startswith('postgres://'):
     raw_db_url = raw_db_url.replace('postgres://', 'postgresql://', 1)
+
 app.config['SQLALCHEMY_DATABASE_URI'] = raw_db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SESSION_TYPE']          = 'filesystem'
-if os.getenv('VERCEL') == '1':
-    app.config['SESSION_FILE_DIR']  = '/tmp/flask_session'
+
+# Session configuration (use /tmp on serverless)
+app.config['SESSION_TYPE'] = 'filesystem'
+if is_serverless:
+    app.config['SESSION_FILE_DIR'] = '/tmp/flask_session'
 else:
-    app.config['SESSION_FILE_DIR']  = os.path.join(BASE_DIR, 'flask_session')
+    app.config['SESSION_FILE_DIR'] = os.path.join(BASE_DIR, 'flask_session')
 
-
+try:
+    os.makedirs(app.config['SESSION_FILE_DIR'], exist_ok=True)
+except Exception:
+    pass
 
 from backend.database import (
     db, User, Technician, Customer, Product,
@@ -46,7 +60,11 @@ from backend.database import (
 )
 
 db.init_app(app)
-Session(app)
+try:
+    Session(app)
+except Exception as e:
+    print(f"Session init notice: {e}")
+
 
 login_manager = LoginManager(app)
 login_manager.login_view = 'serve_index'
@@ -144,8 +162,21 @@ def serve_static(filename):
     return send_from_directory(STATIC_DIR, filename)
 
 
-UPLOAD_FOLDER = os.path.join(STATIC_DIR, 'uploads', 'installations')
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+UPLOAD_FOLDER = '/tmp/uploads/installations' if is_serverless else os.path.join(STATIC_DIR, 'uploads', 'installations')
+try:
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+except Exception:
+    UPLOAD_FOLDER = '/tmp/uploads/installations'
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+@app.route('/static/uploads/installations/<path:filename>')
+def serve_installation_upload(filename):
+    if os.path.exists(os.path.join(UPLOAD_FOLDER, filename)):
+        return send_from_directory(UPLOAD_FOLDER, filename)
+    static_fallback = os.path.join(STATIC_DIR, 'uploads', 'installations')
+    if os.path.exists(os.path.join(static_fallback, filename)):
+        return send_from_directory(static_fallback, filename)
+    return ('File not found', 404)
 
 # ═══════════════════════════════════════════════════════════════
 # FILE UPLOAD ROUTE
