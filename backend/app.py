@@ -26,7 +26,10 @@ app = Flask(__name__, template_folder=TMPL_DIR, static_folder=STATIC_DIR, instan
 
 app.config['SECRET_KEY']            = os.getenv('SECRET_KEY', 'pureflow-dev-secret-2024')
 sqlite_fallback = 'sqlite:///:memory:' if os.getenv('VERCEL') == '1' else f'sqlite:///{os.path.join(BASE_DIR, "pureflow.db")}'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', sqlite_fallback)
+raw_db_url = os.getenv('DATABASE_URL', sqlite_fallback)
+if raw_db_url and raw_db_url.startswith('postgres://'):
+    raw_db_url = raw_db_url.replace('postgres://', 'postgresql://', 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = raw_db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SESSION_TYPE']          = 'filesystem'
 if os.getenv('VERCEL') == '1':
