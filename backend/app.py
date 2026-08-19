@@ -27,21 +27,7 @@ is_serverless = bool(os.getenv('VERCEL') or os.getenv('AWS_LAMBDA_FUNCTION_NAME'
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__, template_folder=TMPL_DIR, static_folder=STATIC_DIR)
-
-# WSGI Middleware to restore original request PATH_INFO from Vercel rewrite headers
-class VercelPathMiddleware:
-    def __init__(self, wsgi_app):
-        self.wsgi_app = wsgi_app
-
-    def __call__(self, environ, start_response):
-        matched_path = environ.get('HTTP_X_MATCHED_PATH') or environ.get('HTTP_X_FORWARDED_URI') or environ.get('RAW_URI')
-        if matched_path:
-            clean_path = matched_path.split('?')[0]
-            environ['PATH_INFO'] = clean_path
-        return self.wsgi_app(environ, start_response)
-
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
-app.wsgi_app = VercelPathMiddleware(app.wsgi_app)
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'pureflow-dev-secret-2024')
 
@@ -62,10 +48,15 @@ elif is_serverless and raw_db_url.startswith('sqlite:'):
 
 app.config['SQLALCHEMY_DATABASE_URI'] = raw_db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+
+engine_options = {
     'pool_pre_ping': True,
     'pool_recycle': 300,
 }
+if raw_db_url.startswith('postgresql') and 'sslmode' not in raw_db_url and 'localhost' not in raw_db_url and '127.0.0.1' not in raw_db_url:
+    engine_options['connect_args'] = {'sslmode': 'require'}
+
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = engine_options
 
 # Session configuration:
 # On serverless (Vercel), Flask's native signed client-side cookies provide stateless,
@@ -226,6 +217,18 @@ def handle_404(e):
     if request.path.startswith('/api/') and not request.path.startswith('/api/index'):
         return jsonify({'success': False, 'message': 'API endpoint not found'}), 404
     return send_from_directory(TMPL_DIR, 'index.html')
+
+@app.errorhandler(500)
+def handle_500(e):
+    import traceback
+    print(f"500 Internal Server Error: {e}\n{traceback.format_exc()}")
+    return jsonify({'success': False, 'message': f'Server error: {str(e)}'}), 500
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    import traceback
+    print(f"Unhandled Exception: {e}\n{traceback.format_exc()}")
+    return jsonify({'success': False, 'message': f'Server error: {str(e)}'}), 500
 
 
 # ═══════════════════════════════════════════════════════════════
