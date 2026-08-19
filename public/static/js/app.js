@@ -7,28 +7,48 @@
 
 const API = {
     async get(url) {
-        const r = await fetch(url, { credentials: 'include' });
-        return r.json();
+        try {
+            const r = await fetch(url, { credentials: 'include' });
+            return await r.json();
+        } catch (e) {
+            console.error('API.get error:', e);
+            return { success: false, message: 'Network error or server unavailable' };
+        }
     },
     async post(url, body) {
-        const r = await fetch(url, {
-            method: 'POST', credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-        return r.json();
+        try {
+            const r = await fetch(url, {
+                method: 'POST', credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            return await r.json();
+        } catch (e) {
+            console.error('API.post error:', e);
+            return { success: false, message: 'Network error or server unavailable' };
+        }
     },
     async put(url, body) {
-        const r = await fetch(url, {
-            method: 'PUT', credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-        return r.json();
+        try {
+            const r = await fetch(url, {
+                method: 'PUT', credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            return await r.json();
+        } catch (e) {
+            console.error('API.put error:', e);
+            return { success: false, message: 'Network error or server unavailable' };
+        }
     },
     async delete(url) {
-        const r = await fetch(url, { method: 'DELETE', credentials: 'include' });
-        return r.json();
+        try {
+            const r = await fetch(url, { method: 'DELETE', credentials: 'include' });
+            return await r.json();
+        } catch (e) {
+            console.error('API.delete error:', e);
+            return { success: false, message: 'Network error or server unavailable' };
+        }
     }
 };
 
