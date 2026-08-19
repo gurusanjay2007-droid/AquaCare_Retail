@@ -545,6 +545,38 @@ async function loadDashboard() {
     if (stats.overdue_count > 0) { oBadge.style.display = 'flex'; oBadge.textContent = stats.overdue_count; }
     if (stats.low_stock_count > 0) { sBadge.style.display = 'flex'; sBadge.textContent = stats.low_stock_count; }
 
+    // Daily Service Summary KPI & Table
+    if (stats.daily_services) {
+        const ds = stats.daily_services;
+        const totalEl = document.getElementById('daily-stat-total');
+        const compEl = document.getElementById('daily-stat-completed');
+        const pendEl = document.getElementById('daily-stat-pending');
+        const overEl = document.getElementById('daily-stat-overdue');
+        if (totalEl) totalEl.textContent = ds.total || 0;
+        if (compEl) compEl.textContent = ds.completed || 0;
+        if (pendEl) pendEl.textContent = ds.pending || 0;
+        if (overEl) overEl.textContent = ds.overdue || 0;
+
+        const dailyTbody = document.getElementById('daily-services-body');
+        if (dailyTbody) {
+            const list = ds.list || [];
+            dailyTbody.innerHTML = list.length ? list.map(item => `
+                <tr>
+                    <td><strong>${item.customer_name}</strong></td>
+                    <td>${item.customer_mobile || '—'}</td>
+                    <td>${fmt.serviceType(item.service_type || 'General')}</td>
+                    <td>${item.technician_name || '—'}</td>
+                    <td>
+                        <span class="badge ${item.status === 'Completed' ? 'badge-green' : (item.status === 'Overdue' ? 'badge-red' : 'badge-gold')}">
+                            ${item.status}
+                        </span>
+                    </td>
+                    <td><strong style="color:var(--accent-cyan)">${item.amount ? fmt.currency(item.amount) : '₹0'}</strong></td>
+                </tr>
+            `).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:1.5rem">No service visits scheduled for today</td></tr>';
+        }
+    }
+
     // Revenue Chart
     const rCtx = document.getElementById('revenue-chart').getContext('2d');
     if (revenueChart) revenueChart.destroy();
@@ -1288,7 +1320,12 @@ function markBillPaid(id) {
 let showLowOnly = false;
 
 async function loadInventory() {
-    const res = await API.get(`/api/inventory${showLowOnly ? '?low_stock=true' : ''}`);
+    const qEl = document.getElementById('inventory-search');
+    const q = qEl ? qEl.value.trim() : '';
+    let url = `/api/inventory?`;
+    if (showLowOnly) url += 'low_stock=true&';
+    if (q) url += `q=${encodeURIComponent(q)}&`;
+    const res = await API.get(url);
     if (!res.success) return;
 
     document.getElementById('inventory-body').innerHTML = res.data.map((inv, i) => `
@@ -1316,6 +1353,9 @@ async function loadInventory() {
         </tr>
     `).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:2rem">No inventory items</td></tr>';
 }
+
+const invSearchEl = document.getElementById('inventory-search');
+if (invSearchEl) invSearchEl.addEventListener('input', debounce(() => loadInventory(), 400));
 
 document.getElementById('btn-low-stock').addEventListener('click', function() {
     showLowOnly = !showLowOnly;
@@ -1379,7 +1419,9 @@ let smsPage = 1;
 
 async function loadSmsLogs(page = 1) {
     smsPage = page;
-    const res = await API.get(`/api/sms-logs?page=${page}&limit=20`);
+    const qEl = document.getElementById('sms-search');
+    const q = qEl ? qEl.value.trim() : '';
+    const res = await API.get(`/api/sms-logs?page=${page}&limit=20&q=${encodeURIComponent(q)}`);
     if (!res.success) return;
     const { items, total } = res.data;
 
@@ -1396,6 +1438,9 @@ async function loadSmsLogs(page = 1) {
 
     renderPagination('sms-pagination', total, 20, page, loadSmsLogs);
 }
+
+const smsSearchEl = document.getElementById('sms-search');
+if (smsSearchEl) smsSearchEl.addEventListener('input', debounce(() => loadSmsLogs(1), 400));
 
 // ═══════════════════════════════════════════════════════════
 // DROPDOWN REFRESH (for modals)
@@ -1802,4 +1847,483 @@ App.openLightbox = function(src, caption) {
 App.closeLightbox = function() {
     document.getElementById('photo-lightbox').classList.add('hidden');
     document.getElementById('lightbox-img').src = '';
+};
+
+// ═══════════════════════════════════════════════════════════
+// EXCEL-GRADE COLUMN FILTERING, SORTING & EXPORT SYSTEM
+// ═══════════════════════════════════════════════════════════
+
+const TableFilters = {
+    // Structure: { [tableId]: { [colIndex]: { search: '', selectedValues: Set(), min: null, max: null, datePreset: '', sort: null } } }
+    state: {},
+    activeMenu: null,
+
+    init(tableId) {
+        if (!this.state[tableId]) this.state[tableId] = {};
+    },
+
+    getState(tableId, colIndex) {
+        this.init(tableId);
+        if (!this.state[tableId][colIndex]) {
+            this.state[tableId][colIndex] = {
+                search: '',
+                selectedValues: null, // null means all selected
+                min: null,
+                max: null,
+                datePreset: '',
+                sort: null
+            };
+        }
+        return this.state[tableId][colIndex];
+    },
+
+    hasActiveFilter(tableId, colIndex) {
+        if (!this.state[tableId] || !this.state[tableId][colIndex]) return false;
+        const s = this.state[tableId][colIndex];
+        return (s.search && s.search.trim() !== '') ||
+               (s.selectedValues !== null) ||
+               (s.min !== null && s.min !== '') ||
+               (s.max !== null && s.max !== '') ||
+               (s.datePreset && s.datePreset !== '') ||
+               (s.sort !== null);
+    },
+
+    updateTriggerBadge(tableId, colIndex) {
+        const table = document.getElementById(tableId);
+        if (!table) return;
+        const thList = table.querySelectorAll('thead th');
+        if (thList[colIndex]) {
+            const trigger = thList[colIndex].querySelector('.th-filter-trigger');
+            if (trigger) {
+                if (this.hasActiveFilter(tableId, colIndex)) {
+                    trigger.classList.add('active-filter');
+                    trigger.title = 'Filter active (click to modify)';
+                } else {
+                    trigger.classList.remove('active-filter');
+                    trigger.title = 'Filter / Sort column';
+                }
+            }
+        }
+    },
+
+    extractColumnData(tableId, colIndex) {
+        const table = document.getElementById(tableId);
+        if (!table) return [];
+        const tbody = table.querySelector('tbody');
+        if (!tbody) return [];
+        const rows = Array.from(tbody.querySelectorAll('tr')).filter(tr => !tr.classList.contains('empty-filter-row'));
+        const values = [];
+        rows.forEach(row => {
+            const cells = row.children;
+            if (cells.length > colIndex) {
+                const text = cells[colIndex].innerText.trim();
+                values.push({ text, row });
+            }
+        });
+        return values;
+    },
+
+    applyFilters(tableId) {
+        const table = document.getElementById(tableId);
+        if (!table) return;
+        const tbody = table.querySelector('tbody');
+        if (!tbody) return;
+        
+        // Remove existing empty state row
+        const prevEmpty = tbody.querySelector('.empty-filter-row');
+        if (prevEmpty) prevEmpty.remove();
+
+        const rows = Array.from(tbody.querySelectorAll('tr')).filter(tr => !tr.classList.contains('empty-filter-row'));
+        if (!rows.length) return;
+
+        const tableState = this.state[tableId] || {};
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const cells = row.children;
+            let show = true;
+
+            for (const colIdxStr in tableState) {
+                const colIdx = parseInt(colIdxStr);
+                const s = tableState[colIdx];
+                if (!s || cells.length <= colIdx) continue;
+
+                const rawText = cells[colIdx].innerText.trim();
+
+                // 1. Value checkbox filter
+                if (s.selectedValues !== null) {
+                    if (!s.selectedValues.has(rawText)) {
+                        show = false;
+                        break;
+                    }
+                }
+
+                // 2. Text Search filter
+                if (s.search && s.search.trim() !== '') {
+                    if (!rawText.toLowerCase().includes(s.search.toLowerCase().trim())) {
+                        show = false;
+                        break;
+                    }
+                }
+
+                // 3. Numeric min / max filter
+                if (s.min !== null && s.min !== '') {
+                    const numVal = parseFloat(rawText.replace(/[^\d.-]/g, ''));
+                    if (isNaN(numVal) || numVal < parseFloat(s.min)) {
+                        show = false;
+                        break;
+                    }
+                }
+                if (s.max !== null && s.max !== '') {
+                    const numVal = parseFloat(rawText.replace(/[^\d.-]/g, ''));
+                    if (isNaN(numVal) || numVal > parseFloat(s.max)) {
+                        show = false;
+                        break;
+                    }
+                }
+
+                // 4. Date Preset Filter
+                if (s.datePreset) {
+                    const rowDate = new Date(rawText);
+                    if (!isNaN(rowDate.getTime())) {
+                        const now = new Date();
+                        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                        const rowDay = new Date(rowDate.getFullYear(), rowDate.getMonth(), rowDate.getDate());
+                        
+                        if (s.datePreset === 'today' && rowDay.getTime() !== today.getTime()) {
+                            show = false; break;
+                        } else if (s.datePreset === 'past' && rowDay >= today) {
+                            show = false; break;
+                        } else if (s.datePreset === 'this_week') {
+                            const weekStart = new Date(today);
+                            weekStart.setDate(today.getDate() - today.getDay());
+                            const weekEnd = new Date(weekStart);
+                            weekEnd.setDate(weekStart.getDate() + 7);
+                            if (rowDay < weekStart || rowDay > weekEnd) { show = false; break; }
+                        } else if (s.datePreset === 'this_month') {
+                            if (rowDate.getMonth() !== now.getMonth() || rowDate.getFullYear() !== now.getFullYear()) {
+                                show = false; break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            row.style.display = show ? '' : 'none';
+            if (show) visibleCount++;
+        });
+
+        // Handle Sorting if requested
+        for (const colIdxStr in tableState) {
+            const colIdx = parseInt(colIdxStr);
+            const s = tableState[colIdx];
+            if (s && s.sort) {
+                const sortedRows = rows.slice().sort((a, b) => {
+                    const aText = a.children[colIdx] ? a.children[colIdx].innerText.trim() : '';
+                    const bText = b.children[colIdx] ? b.children[colIdx].innerText.trim() : '';
+                    const aNum = parseFloat(aText.replace(/[^\d.-]/g, ''));
+                    const bNum = parseFloat(bText.replace(/[^\d.-]/g, ''));
+                    if (!isNaN(aNum) && !isNaN(bNum)) {
+                        return s.sort === 'asc' ? aNum - bNum : bNum - aNum;
+                    }
+                    return s.sort === 'asc' ? aText.localeCompare(bText) : bText.localeCompare(aText);
+                });
+                sortedRows.forEach(r => tbody.appendChild(r));
+                break;
+            }
+        }
+
+        if (visibleCount === 0) {
+            const colSpan = table.querySelectorAll('thead th').length || 7;
+            const emptyTr = document.createElement('tr');
+            emptyTr.className = 'empty-filter-row';
+            emptyTr.innerHTML = `<td colspan="${colSpan}" style="text-align:center;color:var(--text-muted);padding:2rem;">
+                🔍 No rows match current filter criteria.
+                <button class="btn btn-sm btn-outline" style="margin-left:0.75rem;" onclick="TableFilters.clearTable('${tableId}')">Clear All Filters</button>
+            </td>`;
+            tbody.appendChild(emptyTr);
+        }
+
+        // Update trigger button active state indicators
+        const thCount = table.querySelectorAll('thead th').length;
+        for (let i = 0; i < thCount; i++) {
+            this.updateTriggerBadge(tableId, i);
+        }
+    },
+
+    clearColumn(tableId, colIndex) {
+        if (this.state[tableId] && this.state[tableId][colIndex]) {
+            delete this.state[tableId][colIndex];
+        }
+        this.updateTriggerBadge(tableId, colIndex);
+        this.applyFilters(tableId);
+        this.closeMenu();
+    },
+
+    clearTable(tableId) {
+        if (this.state[tableId]) {
+            delete this.state[tableId];
+        }
+        const table = document.getElementById(tableId);
+        if (table) {
+            table.querySelectorAll('.th-filter-trigger').forEach(b => b.classList.remove('active-filter'));
+        }
+        this.applyFilters(tableId);
+        this.closeMenu();
+    },
+
+    closeMenu() {
+        if (this.activeMenu) {
+            this.activeMenu.remove();
+            this.activeMenu = null;
+        }
+    }
+};
+
+window.TableFilters = TableFilters;
+
+window.toggleColumnFilter = function(event, tableId, colIndex, filterType = 'text') {
+    if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+    }
+
+    // If menu already open for this exact column, toggle off
+    if (TableFilters.activeMenu && TableFilters.activeMenu.dataset.colKey === `${tableId}-${colIndex}`) {
+        TableFilters.closeMenu();
+        return;
+    }
+
+    TableFilters.closeMenu();
+
+    const triggerBtn = event.currentTarget || event.target.closest('.th-filter-trigger');
+    const th = triggerBtn ? triggerBtn.closest('th') : null;
+    const colName = th ? th.querySelector('span')?.innerText || `Column ${colIndex+1}` : `Column ${colIndex+1}`;
+
+    const colData = TableFilters.extractColumnData(tableId, colIndex);
+    const valueCounts = {};
+    colData.forEach(item => {
+        const val = item.text || '(Blank)';
+        valueCounts[val] = (valueCounts[val] || 0) + 1;
+    });
+    const uniqueValues = Object.keys(valueCounts).sort();
+
+    const filterState = TableFilters.getState(tableId, colIndex);
+
+    // Create dropdown menu element
+    const menu = document.createElement('div');
+    menu.className = 'col-filter-menu';
+    menu.dataset.colKey = `${tableId}-${colIndex}`;
+
+    // Generate menu HTML
+    let contentHtml = `
+        <div class="sort-actions">
+            <button type="button" class="sort-btn" id="cfm-sort-asc">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h12M3 18h6"/></svg>
+                Sort Ascending (${filterType === 'numeric' ? '0 → 9' : (filterType === 'date' ? 'Oldest → Newest' : 'A → Z')})
+            </button>
+            <button type="button" class="sort-btn" id="cfm-sort-desc">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h6M3 12h12M3 18h18"/></svg>
+                Sort Descending (${filterType === 'numeric' ? '9 → 0' : (filterType === 'date' ? 'Newest → Oldest' : 'Z → A')})
+            </button>
+        </div>
+
+        <div class="filter-section-title">Filter "${colName}"</div>
+        <input type="text" class="filter-search-box" id="cfm-search" placeholder="Search values..." value="${filterState.search || ''}">
+    `;
+
+    if (filterType === 'numeric') {
+        contentHtml += `
+            <div class="filter-range-inputs">
+                <input type="number" id="cfm-min" placeholder="Min" value="${filterState.min !== null ? filterState.min : ''}">
+                <input type="number" id="cfm-max" placeholder="Max" value="${filterState.max !== null ? filterState.max : ''}">
+            </div>
+        `;
+    } else if (filterType === 'date') {
+        contentHtml += `
+            <div class="filter-presets">
+                <button type="button" class="filter-preset-chip ${filterState.datePreset === 'today' ? 'active' : ''}" data-preset="today">Today</button>
+                <button type="button" class="filter-preset-chip ${filterState.datePreset === 'this_week' ? 'active' : ''}" data-preset="this_week">This Week</button>
+                <button type="button" class="filter-preset-chip ${filterState.datePreset === 'this_month' ? 'active' : ''}" data-preset="this_month">This Month</button>
+                <button type="button" class="filter-preset-chip ${filterState.datePreset === 'past' ? 'active' : ''}" data-preset="past">Past Due</button>
+            </div>
+        `;
+    }
+
+    // Values list with checkboxes
+    contentHtml += `
+        <div class="filter-values-list" id="cfm-val-list">
+            <div class="filter-val-item">
+                <label>
+                    <input type="checkbox" id="cfm-select-all" ${filterState.selectedValues === null ? 'checked' : ''}>
+                    <strong>(Select All)</strong>
+                </label>
+            </div>
+            ${uniqueValues.map(val => {
+                const isChecked = filterState.selectedValues === null || filterState.selectedValues.has(val);
+                return `
+                    <div class="filter-val-item" data-val="${val.toLowerCase()}">
+                        <label>
+                            <input type="checkbox" class="cfm-val-cb" value="${val.replace(/"/g, '&quot;')}" ${isChecked ? 'checked' : ''}>
+                            <span title="${val.replace(/"/g, '&quot;')}">${val}</span>
+                        </label>
+                        <span class="filter-val-count">${valueCounts[val]}</span>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+
+        <div class="filter-menu-actions">
+            <button type="button" class="btn btn-sm btn-outline" id="cfm-clear">Clear</button>
+            <button type="button" class="btn btn-sm btn-primary" id="cfm-apply">Apply</button>
+        </div>
+    `;
+
+    menu.innerHTML = contentHtml;
+    document.body.appendChild(menu);
+    TableFilters.activeMenu = menu;
+
+    // Position menu below the trigger button
+    const btnRect = triggerBtn.getBoundingClientRect();
+    let top = btnRect.bottom + window.scrollY + 4;
+    let left = btnRect.left + window.scrollX;
+    
+    // Boundary check for right side of window
+    if (left + 260 > window.innerWidth) {
+        left = window.innerWidth - 270;
+    }
+    menu.style.top = `${top}px`;
+    menu.style.left = `${Math.max(10, left)}px`;
+
+    // Prevent clicks inside popup from bubbling to window
+    menu.addEventListener('click', e => e.stopPropagation());
+
+    // Wire Sort Buttons
+    menu.querySelector('#cfm-sort-asc').addEventListener('click', () => {
+        filterState.sort = 'asc';
+        TableFilters.applyFilters(tableId);
+        TableFilters.closeMenu();
+    });
+    menu.querySelector('#cfm-sort-desc').addEventListener('click', () => {
+        filterState.sort = 'desc';
+        TableFilters.applyFilters(tableId);
+        TableFilters.closeMenu();
+    });
+
+    // Wire Search Box inside menu
+    const searchInput = menu.querySelector('#cfm-search');
+    searchInput.addEventListener('input', e => {
+        const query = e.target.value.toLowerCase().trim();
+        menu.querySelectorAll('.filter-val-item[data-val]').forEach(item => {
+            const val = item.dataset.val;
+            item.style.display = (!query || val.includes(query)) ? 'flex' : 'none';
+        });
+    });
+
+    // Wire (Select All) Checkbox
+    const selectAllCb = menu.querySelector('#cfm-select-all');
+    const valCbs = menu.querySelectorAll('.cfm-val-cb');
+    selectAllCb.addEventListener('change', e => {
+        valCbs.forEach(cb => {
+            if (cb.closest('.filter-val-item').style.display !== 'none') {
+                cb.checked = e.target.checked;
+            }
+        });
+    });
+
+    // Wire Date Presets if present
+    menu.querySelectorAll('.filter-preset-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            menu.querySelectorAll('.filter-preset-chip').forEach(c => c.classList.remove('active'));
+            if (filterState.datePreset === chip.dataset.preset) {
+                filterState.datePreset = '';
+            } else {
+                chip.classList.add('active');
+                filterState.datePreset = chip.dataset.preset;
+            }
+        });
+    });
+
+    // Wire Clear Button
+    menu.querySelector('#cfm-clear').addEventListener('click', () => {
+        TableFilters.clearColumn(tableId, colIndex);
+    });
+
+    // Wire Apply Button
+    menu.querySelector('#cfm-apply').addEventListener('click', () => {
+        filterState.search = searchInput.value.trim();
+
+        if (filterType === 'numeric') {
+            const minVal = menu.querySelector('#cfm-min')?.value;
+            const maxVal = menu.querySelector('#cfm-max')?.value;
+            filterState.min = minVal !== '' ? parseFloat(minVal) : null;
+            filterState.max = maxVal !== '' ? parseFloat(maxVal) : null;
+        }
+
+        const checkedValues = new Set();
+        let allChecked = true;
+        valCbs.forEach(cb => {
+            if (cb.checked) {
+                checkedValues.add(cb.value);
+            } else {
+                allChecked = false;
+            }
+        });
+
+        if (allChecked && !filterState.search) {
+            filterState.selectedValues = null;
+        } else {
+            filterState.selectedValues = checkedValues;
+        }
+
+        TableFilters.applyFilters(tableId);
+        TableFilters.closeMenu();
+    });
+};
+
+// Global click outside listener to close column filter menus
+document.addEventListener('click', e => {
+    if (TableFilters.activeMenu && !TableFilters.activeMenu.contains(e.target) && !e.target.closest('.th-filter-trigger')) {
+        TableFilters.closeMenu();
+    }
+});
+
+// Global escape key listener
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && TableFilters.activeMenu) {
+        TableFilters.closeMenu();
+    }
+});
+
+// Global export to Excel function
+window.exportTableToExcel = function(tableId, filename = 'Export') {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+
+    let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
+    html += '<head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>';
+    html += '<x:Name>' + filename + '</x:Name>';
+    html += '<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head>';
+    html += '<body><table border="1">';
+
+    // Clone table and remove action columns / filter triggers
+    const clone = table.cloneNode(true);
+    clone.querySelectorAll('.th-filter-trigger, .action-btns, button, .sidebar-toggle-close').forEach(el => el.remove());
+    clone.querySelectorAll('tr').forEach(tr => {
+        if (tr.style.display === 'none' || tr.classList.contains('empty-filter-row')) tr.remove();
+    });
+
+    html += clone.innerHTML;
+    html += '</table></body></html>';
+
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filename}_${new Date().toISOString().split('T')[0]}.xls`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast(`Exported ${filename} successfully!`, 'success');
 };

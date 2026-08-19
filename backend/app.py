@@ -32,26 +32,45 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'pureflow-dev-secret-2024')
 if is_serverless:
     sqlite_fallback = 'sqlite:////tmp/pureflow.db'
 else:
-    sqlite_fallback = f'sqlite:///{os.path.join(BASE_DIR, "pureflow.db")}'
+    db_path = os.path.join(BASE_DIR, "pureflow.db")
+    sqlite_fallback = f'sqlite:///{db_path}'
 
-raw_db_url = os.getenv('DATABASE_URL', sqlite_fallback)
-if raw_db_url and raw_db_url.startswith('postgres://'):
+raw_db_url = os.getenv('DATABASE_URL', '').strip()
+if not raw_db_url or '[YOUR-PASSWORD]' in raw_db_url or 'YOUR_PASSWORD' in raw_db_url:
+    raw_db_url = sqlite_fallback
+elif raw_db_url.startswith('postgres://'):
     raw_db_url = raw_db_url.replace('postgres://', 'postgresql://', 1)
+elif is_serverless and raw_db_url.startswith('sqlite:'):
+    raw_db_url = sqlite_fallback
 
 app.config['SQLALCHEMY_DATABASE_URI'] = raw_db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping': True,
+    'pool_recycle': 300,
+}
 
-# Session configuration (use /tmp on serverless)
-app.config['SESSION_TYPE'] = 'filesystem'
-if is_serverless:
-    app.config['SESSION_FILE_DIR'] = '/tmp/flask_session'
-else:
-    app.config['SESSION_FILE_DIR'] = os.path.join(BASE_DIR, 'flask_session')
+# Session configuration:
+# On serverless (Vercel), Flask's native signed client-side cookies provide stateless,
+# resilient auth across ephemeral serverless instances and cold starts.
+app.config['SESSION_COOKIE_NAME'] = 'aquacare_session'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 
-try:
-    os.makedirs(app.config['SESSION_FILE_DIR'], exist_ok=True)
-except Exception:
-    pass
+session_type = os.getenv('SESSION_TYPE')
+if session_type:
+    app.config['SESSION_TYPE'] = session_type
+    if session_type == 'filesystem':
+        app.config['SESSION_FILE_DIR'] = '/tmp/flask_session' if is_serverless else os.path.join(BASE_DIR, 'flask_session')
+        try:
+            os.makedirs(app.config['SESSION_FILE_DIR'], exist_ok=True)
+        except Exception:
+            pass
+    try:
+        Session(app)
+    except Exception as e:
+        print(f"Session init notice: {e}")
 
 from backend.database import (
     db, User, Technician, Customer, Product,
@@ -60,10 +79,6 @@ from backend.database import (
 )
 
 db.init_app(app)
-try:
-    Session(app)
-except Exception as e:
-    print(f"Session init notice: {e}")
 
 
 login_manager = LoginManager(app)
@@ -157,6 +172,14 @@ def log_sms(customer, message):
 def serve_index():
     return send_from_directory(TMPL_DIR, 'index.html')
 
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(STATIC_DIR, 'logo.jpg', mimetype='image/jpeg')
+
+@app.route('/logo.jpg')
+def root_logo():
+    return send_from_directory(STATIC_DIR, 'logo.jpg', mimetype='image/jpeg')
+
 @app.route('/static/<path:filename>')
 def serve_static(filename):
     return send_from_directory(STATIC_DIR, filename)
@@ -177,6 +200,13 @@ def serve_installation_upload(filename):
     if os.path.exists(os.path.join(static_fallback, filename)):
         return send_from_directory(static_fallback, filename)
     return ('File not found', 404)
+
+@app.errorhandler(404)
+def handle_404(e):
+    if request.path.startswith('/api/'):
+        return jsonify({'success': False, 'message': 'API endpoint not found'}), 404
+    return send_from_directory(TMPL_DIR, 'index.html')
+
 
 # ═══════════════════════════════════════════════════════════════
 # FILE UPLOAD ROUTE
@@ -743,6 +773,7 @@ def update_installation(iid):
 @app.route('/api/schedules', methods=['GET'])
 def get_schedules():
     status = request.args.get('status', '')
+    q      = request.args.get('q', '').strip()
     today  = date.today()
 
     # Auto-update overdue
@@ -755,9 +786,14 @@ def get_schedules():
     if overdue:
         db.session.commit()
 
-    query = ServiceSchedule.query
+    query = ServiceSchedule.query.join(Customer)
     if status:
         query = query.filter(ServiceSchedule.status == status)
+    if q:
+        query = query.filter(
+            db.or_(Customer.customer_name.ilike(f'%{q}%'),
+                   Customer.mobile.ilike(f'%{q}%'))
+        )
     items = query.order_by(ServiceSchedule.next_service_date).all()
     return api_success([s.to_dict() for s in items])
 
@@ -1037,9 +1073,12 @@ def update_bill(bid):
 @app.route('/api/inventory', methods=['GET'])
 def get_inventory():
     low_only = request.args.get('low_stock') == 'true'
+    q        = request.args.get('q', '').strip()
     items    = Inventory.query.order_by(Inventory.part_name).all()
     if low_only:
         items = [i for i in items if i.is_low_stock]
+    if q:
+        items = [i for i in items if q.lower() in (i.part_name or '').lower() or (i.brand and q.lower() in i.brand.lower())]
     return api_success([i.to_dict() for i in items])
 
 
@@ -1082,8 +1121,16 @@ def delete_inventory(iid):
 def get_sms_logs():
     page  = int(request.args.get('page', 1))
     limit = int(request.args.get('limit', 20))
-    total = SmsLog.query.count()
-    items = SmsLog.query.order_by(SmsLog.sent_at.desc()).offset((page-1)*limit).limit(limit).all()
+    q     = request.args.get('q', '').strip()
+    query = SmsLog.query
+    if q:
+        query = query.filter(
+            db.or_(SmsLog.mobile.ilike(f'%{q}%'),
+                   SmsLog.message.ilike(f'%{q}%'),
+                   SmsLog.status.ilike(f'%{q}%'))
+        )
+    total = query.count()
+    items = query.order_by(SmsLog.sent_at.desc()).offset((page-1)*limit).limit(limit).all()
     return api_success({'items': [s.to_dict() for s in items], 'total': total})
 
 
@@ -1509,33 +1556,31 @@ def create_app():
     with app.app_context():
         try:
             db.create_all()
-            # Auto-migrate columns for SQLite if upgrading existing database
-            with db.engine.connect() as conn:
+            # Auto-migrate columns if upgrading existing database
+            for col_query in [
+                "ALTER TABLE technicians ADD COLUMN IF NOT EXISTS photo_url VARCHAR(500)",
+                "ALTER TABLE products ADD COLUMN IF NOT EXISTS cost_price NUMERIC DEFAULT 0.0",
+                "ALTER TABLE products ADD COLUMN IF NOT EXISTS selling_price NUMERIC DEFAULT 0.0"
+            ]:
                 try:
-                    conn.execute(db.text("ALTER TABLE technicians ADD COLUMN photo_url VARCHAR(500)"))
-                    conn.commit()
+                    with db.engine.begin() as conn:
+                        conn.execute(db.text(col_query))
                 except Exception:
-                    pass
-                try:
-                    conn.execute(db.text("ALTER TABLE products ADD COLUMN cost_price NUMERIC DEFAULT 0.0"))
-                    conn.commit()
-                except Exception:
-                    pass
-                try:
-                    conn.execute(db.text("ALTER TABLE products ADD COLUMN selling_price NUMERIC DEFAULT 0.0"))
-                    conn.commit()
-                except Exception:
-                    pass
+                    try:
+                        clean_query = col_query.replace(" IF NOT EXISTS", "")
+                        with db.engine.begin() as conn:
+                            conn.execute(db.text(clean_query))
+                    except Exception:
+                        pass
 
-            # If in-memory database on Vercel, auto-seed with default admin login and data
-            is_sqlite_memory = 'sqlite:///:memory:' in app.config['SQLALCHEMY_DATABASE_URI']
-            if is_sqlite_memory and User.query.count() == 0:
-                from backend.seed_data import seed
-                try:
+            # If database is fresh / empty, auto-seed with default admin login and sample data
+            try:
+                if User.query.count() == 0:
+                    from backend.seed_data import seed
                     seed()
-                    print("In-memory database auto-seeded successfully.")
-                except Exception as seed_err:
-                    print(f"Warning: Could not auto-seed database: {seed_err}")
+                    print("Initial database auto-seeded successfully.")
+            except Exception as seed_err:
+                print(f"Notice: Auto-seed check: {seed_err}")
         except Exception as e:
             print(f"Warning: db.create_all() failed: {e}")
     return app

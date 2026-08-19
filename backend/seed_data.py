@@ -15,9 +15,13 @@ from backend.database import (
     ServicePart, Bill, SmsLog, Inventory
 )
 
-def seed():
+def seed(force=False):
     with app.app_context():
         db.create_all()
+
+        if not force and User.query.first():
+            print("[*] Database is already initialized and connected to Supabase. Skipping seed to protect live data.")
+            return
 
         # Clear existing data (order matters for FK)
         SmsLog.query.delete()
@@ -276,4 +280,5 @@ def seed():
 
 if __name__ == '__main__':
     from datetime import datetime
-    seed()
+    force = '--force' in sys.argv
+    seed(force=force)
