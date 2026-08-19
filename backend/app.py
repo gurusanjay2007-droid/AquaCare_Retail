@@ -169,6 +169,9 @@ def log_sms(customer, message):
 
 # ─── Static / SPA ────────────────────────────────────────────
 @app.route('/')
+@app.route('/api')
+@app.route('/api/index')
+@app.route('/api/index.py')
 def serve_index():
     return send_from_directory(TMPL_DIR, 'index.html')
 
@@ -203,7 +206,7 @@ def serve_installation_upload(filename):
 
 @app.errorhandler(404)
 def handle_404(e):
-    if request.path.startswith('/api/'):
+    if request.path.startswith('/api/') and not request.path.startswith('/api/index'):
         return jsonify({'success': False, 'message': 'API endpoint not found'}), 404
     return send_from_directory(TMPL_DIR, 'index.html')
 
