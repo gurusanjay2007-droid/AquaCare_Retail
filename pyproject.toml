@@ -1,0 +1,19 @@
+[project]
+name = "aqua-care-retail"
+version = "1.0.0"
+requires-python = ">=3.12"
+dependencies = [
+    "Flask>=3.0.0",
+    "Flask-SQLAlchemy>=3.1.0",
+    "Flask-Login>=0.6.3",
+    "Flask-Session>=0.8.0",
+    "python-dotenv>=1.0.0",
+    "cryptography>=42.0.0",
+    "Werkzeug>=3.0.0",
+    "pymysql>=1.1.0",
+    "psycopg2-binary>=2.9.9",
+    "pg8000>=1.30.0"
+]
+
+[tool.vercel]
+entrypoint = "app.py:app"
