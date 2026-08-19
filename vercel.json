@@ -1,12 +1,15 @@
 {
   "functions": {
-    "api/**/*.py": {
-      "includeFiles": "frontend/**,backend/**,public/**"
-    },
-    "app.py": {
+    "api/index.py": {
       "includeFiles": "frontend/**,backend/**,public/**"
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index"
+    }
+  ]
 }
 
 
