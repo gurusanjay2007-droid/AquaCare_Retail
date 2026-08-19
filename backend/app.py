@@ -24,10 +24,27 @@ STATIC_DIR = os.path.join(BASE_DIR, 'frontend', 'static')
 
 is_serverless = bool(os.getenv('VERCEL') or os.getenv('AWS_LAMBDA_FUNCTION_NAME'))
 
+from urllib.parse import parse_qs, urlencode
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__, template_folder=TMPL_DIR, static_folder=STATIC_DIR)
+
+# WSGI Middleware to extract original request path passed from Vercel rewrite parameter
+class VercelQueryPathMiddleware:
+    def __init__(self, wsgi_app):
+        self.wsgi_app = wsgi_app
+
+    def __call__(self, environ, start_response):
+        query_str = environ.get('QUERY_STRING', '')
+        if '__path__=' in query_str:
+            params = parse_qs(query_str, keep_blank_values=True)
+            if '__path__' in params:
+                environ['PATH_INFO'] = params.pop('__path__')[0]
+                environ['QUERY_STRING'] = urlencode(params, doseq=True)
+        return self.wsgi_app(environ, start_response)
+
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+app.wsgi_app = VercelQueryPathMiddleware(app.wsgi_app)
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'pureflow-dev-secret-2024')
 
