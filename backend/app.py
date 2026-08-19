@@ -24,7 +24,7 @@ STATIC_DIR = os.path.join(BASE_DIR, 'frontend', 'static')
 
 is_serverless = bool(os.getenv('VERCEL') or os.getenv('AWS_LAMBDA_FUNCTION_NAME'))
 
-from urllib.parse import parse_qs, urlencode
+from urllib.parse import parse_qs, urlencode, unquote
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__, template_folder=TMPL_DIR, static_folder=STATIC_DIR)
@@ -36,11 +36,23 @@ class VercelQueryPathMiddleware:
 
     def __call__(self, environ, start_response):
         query_str = environ.get('QUERY_STRING', '')
+        path_to_use = None
         if '__path__=' in query_str:
             params = parse_qs(query_str, keep_blank_values=True)
             if '__path__' in params:
-                environ['PATH_INFO'] = params.pop('__path__')[0]
+                path_to_use = unquote(params.pop('__path__')[0])
                 environ['QUERY_STRING'] = urlencode(params, doseq=True)
+
+        if not path_to_use:
+            raw_matched = environ.get('HTTP_X_MATCHED_PATH') or environ.get('HTTP_X_FORWARDED_URI') or environ.get('RAW_URI')
+            if raw_matched and not raw_matched.startswith('/api/index'):
+                path_to_use = unquote(raw_matched.split('?')[0])
+
+        if path_to_use:
+            if not path_to_use.startswith('/'):
+                path_to_use = '/' + path_to_use
+            environ['PATH_INFO'] = path_to_use
+
         return self.wsgi_app(environ, start_response)
 
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
@@ -193,12 +205,17 @@ def log_sms(customer, message):
 
 
 # ─── Static / SPA ────────────────────────────────────────────
-@app.route('/')
-@app.route('/api')
-@app.route('/api/index')
-@app.route('/api/index.py')
+@app.route('/', methods=['GET'])
 def serve_index():
     return send_from_directory(TMPL_DIR, 'index.html')
+
+@app.route('/api', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])
+@app.route('/api/index', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])
+@app.route('/api/index.py', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])
+def dispatch_index():
+    if request.method == 'GET':
+        return send_from_directory(TMPL_DIR, 'index.html')
+    return jsonify({'success': False, 'message': 'Invalid API endpoint destination'}), 404
 
 @app.route('/favicon.ico')
 def favicon():
