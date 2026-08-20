@@ -24,7 +24,9 @@ STATIC_DIR = os.path.join(BASE_DIR, 'frontend', 'static')
 
 is_serverless = bool(os.getenv('VERCEL') or os.getenv('AWS_LAMBDA_FUNCTION_NAME'))
 
-from urllib.parse import parse_qs, urlencode, unquote
+import re
+import urllib.parse
+from urllib.parse import parse_qs, urlencode, unquote, quote_plus, unquote_plus
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__, template_folder=TMPL_DIR, static_folder=STATIC_DIR)
@@ -70,6 +72,70 @@ app.wsgi_app = VercelQueryPathMiddleware(app.wsgi_app)
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'pureflow-dev-secret-2024')
 
+def sanitize_database_url(raw_url: str) -> str:
+    """
+    Safely sanitizes and URL-encodes PostgreSQL connection URLs.
+    Handles passwords containing '@', ':', '\\@', or unencoded special characters,
+    preventing hostname translation errors such as 'could not translate host name password@host'.
+    """
+    if not raw_url:
+        return ''
+    url = raw_url.strip()
+    if (url.startswith('"') and url.endswith('"')) or (url.startswith("'") and url.endswith("'")):
+        url = url[1:-1].strip()
+    if not url:
+        return ''
+
+    # Normalize scheme
+    if url.startswith('postgres://'):
+        url = 'postgresql://' + url[len('postgres://'):]
+    if not (url.startswith('postgresql://') or url.startswith('postgresql+') or url.startswith('postgres+')):
+        return url
+
+    scheme_match = re.match(r'^([a-zA-Z0-9_+]+):\/\/', url)
+    if not scheme_match:
+        return url
+
+    scheme = scheme_match.group(1)
+    if scheme == 'postgres':
+        scheme = 'postgresql'
+    elif scheme == 'postgres+psycopg2':
+        scheme = 'postgresql+psycopg2'
+
+    after_scheme = url[len(scheme_match.group(0)):]
+    if '?' in after_scheme:
+        base_part, query_part = after_scheme.split('?', 1)
+        query_str = '?' + query_part
+    else:
+        base_part, query_str = after_scheme, ''
+
+    if '/' in base_part:
+        auth_host_part, db_part = base_part.split('/', 1)
+        db_name = '/' + db_part
+    else:
+        auth_host_part, db_name = base_part, ''
+
+    # Split at LAST '@' to properly isolate user:password from host:port
+    if '@' in auth_host_part:
+        auth_part, host_port_part = auth_host_part.rsplit('@', 1)
+        host_port_part = host_port_part.lstrip('\\/').strip()
+        if ':' in auth_part:
+            user, raw_pass = auth_part.split(':', 1)
+            clean_pass = raw_pass.replace(r'\@', '@').replace(r'\:', ':')
+            unquoted_user = unquote_plus(user)
+            unquoted_pass = unquote_plus(clean_pass)
+            safe_user = quote_plus(unquoted_user)
+            safe_pass = quote_plus(unquoted_pass)
+            sanitized = f"{scheme}://{safe_user}:{safe_pass}@{host_port_part}{db_name}{query_str}"
+        else:
+            unquoted_user = unquote_plus(auth_part)
+            safe_user = quote_plus(unquoted_user)
+            sanitized = f"{scheme}://{safe_user}@{host_port_part}{db_name}{query_str}"
+    else:
+        sanitized = f"{scheme}://{auth_host_part}{db_name}{query_str}"
+
+    return sanitized
+
 # Database URI configuration with Supabase / PostgreSQL support
 if is_serverless:
     sqlite_fallback = 'sqlite:////tmp/pureflow.db'
@@ -77,22 +143,30 @@ else:
     db_path = os.path.join(BASE_DIR, "pureflow.db")
     sqlite_fallback = f'sqlite:///{db_path}'
 
-raw_db_url = os.getenv('DATABASE_URL', '').strip()
-if not raw_db_url or '[YOUR-PASSWORD]' in raw_db_url or 'YOUR_PASSWORD' in raw_db_url:
-    raw_db_url = sqlite_fallback
-elif raw_db_url.startswith('postgres://'):
-    raw_db_url = raw_db_url.replace('postgres://', 'postgresql://', 1)
-elif is_serverless and raw_db_url.startswith('sqlite:'):
-    raw_db_url = sqlite_fallback
+raw_db_url = (
+    os.getenv('DATABASE_URL') or
+    os.getenv('POSTGRES_URL') or
+    os.getenv('SUPABASE_DB_URL') or
+    os.getenv('POSTGRES_PRISMA_URL') or
+    os.getenv('POSTGRES_URL_NON_POOLING') or
+    ''
+).strip()
 
-app.config['SQLALCHEMY_DATABASE_URI'] = raw_db_url
+if not raw_db_url or '[YOUR-PASSWORD]' in raw_db_url or 'YOUR_PASSWORD' in raw_db_url:
+    final_db_url = sqlite_fallback
+else:
+    final_db_url = sanitize_database_url(raw_db_url)
+    if is_serverless and final_db_url.startswith('sqlite:'):
+        final_db_url = sqlite_fallback
+
+app.config['SQLALCHEMY_DATABASE_URI'] = final_db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 engine_options = {
     'pool_pre_ping': True,
     'pool_recycle': 300,
 }
-if raw_db_url.startswith('postgresql') and 'sslmode' not in raw_db_url and 'localhost' not in raw_db_url and '127.0.0.1' not in raw_db_url:
+if final_db_url.startswith('postgresql') and 'sslmode' not in final_db_url and 'localhost' not in final_db_url and '127.0.0.1' not in final_db_url:
     engine_options['connect_args'] = {'sslmode': 'require'}
 
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = engine_options
