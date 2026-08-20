@@ -21,3 +21,5 @@ __pycache__/
 frontend/static/uploads/*
 !frontend/static/uploads/.gitkeep
 !frontend/static/uploads/installations/.gitkeep
+
+cookie.txt
