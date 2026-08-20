@@ -37,17 +37,27 @@ class VercelQueryPathMiddleware:
     def __call__(self, environ, start_response):
         query_str = environ.get('QUERY_STRING', '')
         path_to_use = None
+
+        # 1. Check if rewrite passed original path in __path__ query param
         if '__path__=' in query_str:
             params = parse_qs(query_str, keep_blank_values=True)
             if '__path__' in params:
-                path_to_use = unquote(params.pop('__path__')[0])
+                extracted = params.pop('__path__')[0]
+                if extracted:
+                    path_to_use = unquote(extracted)
                 environ['QUERY_STRING'] = urlencode(params, doseq=True)
 
+        # 2. Check headers passed by Vercel / reverse proxy
         if not path_to_use:
-            raw_matched = environ.get('HTTP_X_MATCHED_PATH') or environ.get('HTTP_X_FORWARDED_URI') or environ.get('RAW_URI')
-            if raw_matched and not raw_matched.startswith('/api/index'):
-                path_to_use = unquote(raw_matched.split('?')[0])
+            for header_key in ['HTTP_X_MATCHED_PATH', 'HTTP_X_FORWARDED_URI', 'HTTP_X_ORIGINAL_URI', 'RAW_URI', 'REQUEST_URI']:
+                val = environ.get(header_key)
+                if val:
+                    candidate = unquote(val.split('?')[0])
+                    if candidate and not candidate.startswith('/api/index') and candidate != '/api':
+                        path_to_use = candidate
+                        break
 
+        # 3. Apply resolved path
         if path_to_use:
             if not path_to_use.startswith('/'):
                 path_to_use = '/' + path_to_use
@@ -215,7 +225,7 @@ def serve_index():
 def dispatch_index():
     if request.method == 'GET':
         return send_from_directory(TMPL_DIR, 'index.html')
-    return jsonify({'success': False, 'message': 'Invalid API endpoint destination'}), 404
+    return jsonify({'success': False, 'message': 'API endpoint not found'}), 404
 
 @app.route('/favicon.ico')
 def favicon():
